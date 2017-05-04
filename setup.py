@@ -16,7 +16,7 @@ with open('README.rst') as readme_file:
 requirements = [
     'six',
     'lxml',
-    'beautifulsoup4',
+    'bs4',
     'requests',
     # 'tendril', # Install manually
 ]

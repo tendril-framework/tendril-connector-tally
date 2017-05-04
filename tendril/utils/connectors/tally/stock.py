@@ -282,6 +282,8 @@ class TallyStockItemPosition(TallyElement):
 
 
 class TallyStockMaster(TallyReport):
+    _cachename = 'TallyStockMaster'
+
     def _build_request_body(self):
         r = etree.Element('EXPORTDATA')
         rd = etree.SubElement(r, 'REQUESTDESC')
@@ -305,6 +307,7 @@ class TallyStockMaster(TallyReport):
 
 
 class TallyStockPosition(TallyReport):
+    _cachename = 'TallyStockPosition'
     _header = TallyRequestHeader(1, 'Export', 'Collection',
                                  'All items under Groups')
 

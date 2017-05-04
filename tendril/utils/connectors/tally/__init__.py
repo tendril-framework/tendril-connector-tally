@@ -32,9 +32,11 @@ from requests.exceptions import ConnectionError
 
 try:
     from tendril.utils.config import TALLY_HOST
+    from tendril.utils.config import TALLY_CACHE
     from tendril.inventory.acquire import MasterNotAvailable
 except ImportError:
     TALLY_HOST = 'localhost'
+    TALLY_CACHE = None
     MasterNotAvailable = ConnectionError
 
 
@@ -87,6 +89,7 @@ class TallyElement(TallyObject):
 class TallyReport(object):
     _header = 'Export Data'
     _container = None
+    _cachename = None
     _content = {}
 
     def __init__(self):
@@ -124,12 +127,25 @@ class TallyReport(object):
         self._xion = TallyXMLEngine()
         query = TallyQueryParameters(self._build_request_header(),
                                      self._build_request_body())
-        self._soup = self._xion.execute(query)
+        self._soup = self._xion.execute(query, cachename=self._cachename)
+
+    def _acquire_cached_raw_response(self):
+        try:
+            # TODO Acquire cached response
+            self._soup = None
+        except:
+            raise TallyNotAvailable
 
     @property
     def soup(self):
         if not self._soup:
-            self._acquire_raw_response()
+            try:
+                self._acquire_raw_response()
+            except TallyNotAvailable:
+                if TALLY_CACHE and self._cachename:
+                    self._acquire_cached_raw_response()
+                else:
+                    raise
         return self._soup
 
     def __getattr__(self, item):
@@ -153,7 +169,7 @@ class TallyXMLEngine(object):
         self._query = None
         self._response = None
 
-    def execute(self, query):
+    def execute(self, query, cachename=None):
         self.query = query
         headers = {'Content-Type': 'application/xml'}
         uri = 'http://{0}:9002'.format(TALLY_HOST)
@@ -163,6 +179,9 @@ class TallyXMLEngine(object):
             r = requests.post(uri, data=xmlstring.getvalue(), headers=headers)
         except ConnectionError:
             raise TallyNotAvailable
+        if TALLY_CACHE and cachename:
+            # TODO Write response to cache
+            pass
         self._response = BeautifulSoup(r.content, 'lxml')
         return self._response
 

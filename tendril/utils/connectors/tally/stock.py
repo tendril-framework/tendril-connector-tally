@@ -23,16 +23,17 @@ Docstring for stock
 """
 
 from lxml import etree
+from warnings import warn
 from tendril.inventory.acquire import InventoryReaderBase
 
-from . import TallyXMLEngine
-from . import TallyQueryParameters
+from . import TallyReport
+from . import TallyRequestHeader
 from . import TallyNotAvailable
-from . import TallyMasterElement
+from . import TallyElement
 from . import yesorno
 
 
-class TallyStockGroup(TallyMasterElement):
+class TallyStockGroup(TallyElement):
     elements = {
         'name': ('name', str, True),
         '_parent': ('parent', str, True),
@@ -81,7 +82,7 @@ class TallyStockGroup(TallyMasterElement):
         return "<TallyStockGroup {1}>".format(self.__class__, self.name)
 
 
-class TallyStockCategory(TallyMasterElement):
+class TallyStockCategory(TallyElement):
     elements = {
         'name': ('name', str, True),
         '_parent': ('parent', str, True),
@@ -94,7 +95,7 @@ class TallyStockCategory(TallyMasterElement):
             return self._ctx.stockcategories[self._parent]
 
 
-class TallyStockItem(TallyMasterElement):
+class TallyStockItem(TallyElement):
     elements = {
         'name': ('name', str, True),
         '_parent': ('parent', str, True),
@@ -193,7 +194,7 @@ class TallyStockItem(TallyMasterElement):
         return "<TallyStockItem {1}>".format(self.__class__, self.name)
 
 
-class TallyGodown(TallyMasterElement):
+class TallyGodown(TallyElement):
     elements = {
         'name': ('name', str, True),
         '_parent': ('parent', str, True),
@@ -213,7 +214,7 @@ class TallyGodown(TallyMasterElement):
         return "<TallyGodown {1}>".format(self.__class__, self.name)
 
 
-class TallyVoucherType(TallyMasterElement):
+class TallyVoucherType(TallyElement):
     elements = {
         'name': ('name', str, True),
         '_parent': ('parent', str, True),
@@ -245,7 +246,7 @@ class TallyVoucherType(TallyMasterElement):
             return self._ctx.vouchertypes[self._parent]
 
 
-class TallyUnit(TallyMasterElement):
+class TallyUnit(TallyElement):
     elements = {
         'name': ('name', str, True),
         'originalname': ('originalname', str, False),
@@ -256,20 +257,32 @@ class TallyUnit(TallyMasterElement):
     }
 
 
-class TallyStockMaster(object):
-    def __init__(self):
-        self._xion = None
-        self._soup = None
-        self._stockgroups = None
-        self._stockitems = None
-        self._stockcategories = None
-        self._vouchertypes = None
-        self._units = None
-        self._godowns = None
-        self._acquire_raw_master()
+class TallyStockItemPosition(TallyElement):
+    elements = {
+        'name': ('name', str, True),
+        '_parent': ('parent', str, True),
+        '_baseunits': ('baseunits', str, True),
+        'closingbalance': ('closingbalance', str, True),
+        'closingvalue': ('closingvalue', str, True),
+        'closingrate': ('closingrate', str, True),
+    }
 
-    @staticmethod
-    def _master_request():
+    @property
+    def parent(self):
+        try:
+            return get_master().stockgroups[self._parent]
+        except KeyError:
+            warn("Could not find Parent {0} for {1}"
+                 "".format(self._parent, self.name))
+            return self._parent
+
+    @property
+    def baseunits(self):
+        return get_master().units[self._baseunits]
+
+
+class TallyStockMaster(TallyReport):
+    def _build_request_body(self):
         r = etree.Element('EXPORTDATA')
         rd = etree.SubElement(r, 'REQUESTDESC')
         rn = etree.SubElement(rd, 'REPORTNAME')
@@ -281,82 +294,42 @@ class TallyStockMaster(object):
         at.text = 'All Inventory Masters'
         return etree.ElementTree(r)
 
-    def _acquire_raw_master(self):
-        self._xion = TallyXMLEngine()
-        query = TallyQueryParameters("Export Data", self._master_request())
-        self._soup = self._xion.execute(query)
+    _content = {
+        'stockitems': ('stockitem', TallyStockItem),
+        'stockgroups': ('stockgroup', TallyStockGroup),
+        'stockcategories': ('stockcatogory', TallyStockCategory),
+        'godowns': ('godown', TallyGodown),
+        'vouchertypes': ('vouchertype', TallyVoucherType),
+        'units': ('unit', TallyUnit)
+    }
 
-    @property
-    def soup(self):
-        if not self._soup:
-            self._acquire_raw_master()
-        return self._soup
 
-    @property
-    def stockgroups(self):
-        return self._stockgroups or self._get_stockgroups()
+class TallyStockPosition(TallyReport):
+    _header = TallyRequestHeader(1, 'Export', 'Collection',
+                                 'All items under Groups')
 
-    @property
-    def stockitems(self):
-        return self._stockitems or self._get_stockitems()
+    def _build_request_body(self):
+        r = etree.Element('DESC')
+        sv = etree.SubElement(r, 'STATICVARIABLES')
+        svef = etree.SubElement(sv, 'SVEXPORTFORMAT')
+        svef.text = '$$SysName:XML'
+        svec = etree.SubElement(sv, 'ENCODINGTYPE')
+        svec.text = 'UNICODE'
+        tdl = etree.SubElement(r, 'TDL')
+        tdlmessage = etree.SubElement(tdl, 'TDLMESSAGE')
+        collection = etree.SubElement(tdlmessage, 'COLLECTION', ISMODIFY='No',
+                                      NAME="All items under Groups")
+        colltype = etree.SubElement(collection, 'TYPE')
+        colltype.text = 'stock item'
+        fetchlist = ['Name', 'Parent', 'BaseUnits',
+                     'ClosingBalance', 'ClosingRate', 'ClosingValue']
+        self._build_fetchlist(collection, fetchlist)
+        return etree.ElementTree(r)
 
-    @property
-    def stockcategories(self):
-        return self._stockcategories or self._get_stockcategories()
-
-    @property
-    def godowns(self):
-        return self._godowns or self._get_godowns()
-
-    @property
-    def vouchertypes(self):
-        return self._vouchertypes or self._get_vouchertypes()
-
-    @property
-    def units(self):
-        return self._units or self._get_units()
-
-    # TODO Combine these and push it up the hierarchy
-
-    def _get_stockgroups(self):
-        self._stockgroups = {
-            y.name: y
-            for y in [TallyStockGroup(x, self)
-                      for x in self.soup.findAll('stockgroup')]}
-        return self._stockgroups
-
-    def _get_stockitems(self):
-        self._stockitems = {
-            y.name: y
-            for y in [TallyStockItem(x, self)
-                      for x in self.soup.findAll('stockitem')]}
-        return self._stockitems
-
-    def _get_stockcategories(self):
-        self._stockcategories = {
-            y.name: y
-            for y in [TallyStockCategory(x, self)
-                      for x in self.soup.findAll('stockcategory')]}
-        return self._stockcategories
-
-    def _get_godowns(self):
-        self._godowns = {y.name: y
-                         for y in [TallyGodown(x, self)
-                                   for x in self.soup.findAll('godown')]}
-        return self._godowns
-
-    def _get_vouchertypes(self):
-        self._vouchertypes = \
-            {y.name: y
-             for y in [TallyVoucherType(x, self)
-                       for x in self.soup.findAll('vouchertype')]}
-        return self._vouchertypes
-
-    def _get_units(self):
-        self._units = {y.name: y
-                       for y in [TallyUnit(x, self)
-                                 for x in self.soup.findAll('unit')]}
-        return self._units
+    _container = 'collection'
+    _content = {
+        'items': ('stockitem', TallyStockItemPosition)
+    }
 
 
 class InventoryTallyReader(InventoryReaderBase):
@@ -383,4 +356,4 @@ def get_master(force=False):
     return _master
 
 master_available = False
-_master = get_master()
+_master = None

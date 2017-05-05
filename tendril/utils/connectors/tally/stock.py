@@ -360,3 +360,20 @@ def get_master(force=False):
 
 master_available = False
 _master = None
+
+
+def get_position(force=False):
+    global _position
+    global position_available
+    if not force and position_available:
+        return _position
+    try:
+        _position = TallyStockPosition()
+        position_available = True
+    except TallyNotAvailable:
+        _position = None
+        position_available = False
+    return _position
+
+position_available = False
+_position = None

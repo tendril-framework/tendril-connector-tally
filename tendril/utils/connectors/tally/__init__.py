@@ -22,21 +22,20 @@
 Docstring for __init__.py
 """
 
-from six import iteritems
 import requests
+from six import iteritems
 from lxml import etree
 from StringIO import StringIO
 from collections import namedtuple
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
+from .cache import cachefs
 
 try:
     from tendril.utils.config import TALLY_HOST
-    from tendril.utils.config import TALLY_CACHE
     from tendril.inventory.acquire import MasterNotAvailable
 except ImportError:
     TALLY_HOST = 'localhost'
-    TALLY_CACHE = None
     MasterNotAvailable = ConnectionError
 
 
@@ -95,7 +94,6 @@ class TallyReport(object):
     def __init__(self):
         self._xion = None
         self._soup = None
-        self._acquire_raw_response()
 
     @staticmethod
     def _build_fetchlist(parent, fetchlist):
@@ -131,8 +129,9 @@ class TallyReport(object):
 
     def _acquire_cached_raw_response(self):
         try:
-            # TODO Acquire cached response
-            self._soup = None
+            with cachefs.open(self._cachename + '.xml', 'rb') as f:
+                content = f.read()
+            self._soup = BeautifulSoup(content, 'lxml')
         except:
             raise TallyNotAvailable
 
@@ -142,7 +141,7 @@ class TallyReport(object):
             try:
                 self._acquire_raw_response()
             except TallyNotAvailable:
-                if TALLY_CACHE and self._cachename:
+                if cachefs and self._cachename:
                     self._acquire_cached_raw_response()
                 else:
                     raise
@@ -179,9 +178,9 @@ class TallyXMLEngine(object):
             r = requests.post(uri, data=xmlstring.getvalue(), headers=headers)
         except ConnectionError:
             raise TallyNotAvailable
-        if TALLY_CACHE and cachename:
-            # TODO Write response to cache
-            pass
+        if cachefs and cachename:
+            with cachefs.open(cachename + '.xml', 'wb') as f:
+                f.write(r.content)
         self._response = BeautifulSoup(r.content, 'lxml')
         return self._response
 

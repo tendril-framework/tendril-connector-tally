@@ -18,6 +18,7 @@ requirements = [
     'lxml',
     'bs4',
     'requests',
+    'fs',
     # 'tendril', # Install manually
 ]
 

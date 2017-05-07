@@ -22,8 +22,11 @@
 Docstring for stock
 """
 
+from six import iteritems
 from lxml import etree
 from warnings import warn
+from decimal import Decimal
+from decimal import DecimalException
 from tendril.inventory.acquire import InventoryReaderBase
 
 from . import TallyReport
@@ -31,6 +34,15 @@ from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
 from . import yesorno
+
+try:
+    from tendril.utils.types.lengths import Length
+    from tendril.utils.types.mass import Mass
+    from tendril.utils.types import ParseException
+except ImportError:
+    ParseException = DecimalException
+    Length = Decimal
+    Mass = Decimal
 
 
 class TallyStockGroup(TallyElement):
@@ -63,10 +75,10 @@ class TallyStockGroup(TallyElement):
 
     @property
     def path(self):
-        if self.parent:
-            return ' / '.join([self.parent.path, self.name])
+        if self.parent and self.parent.path:
+            return self.parent.path + [self.name]
         else:
-            return self.name
+            return [self.name]
 
     @property
     def baseunits(self):
@@ -79,7 +91,7 @@ class TallyStockGroup(TallyElement):
             return self._ctx.units[self._additionalunits]
 
     def __repr__(self):
-        return "<TallyStockGroup {1}>".format(self.__class__, self.name)
+        return "<TallyStockGroup {0}>".format(self.name)
 
 
 class TallyStockCategory(TallyElement):
@@ -93,6 +105,9 @@ class TallyStockCategory(TallyElement):
     def parent(self):
         if self._parent and self._parent != self.name:
             return self._ctx.stockcategories[self._parent]
+
+    def __repr__(self):
+        return "<TallyStockCategory {0}>".format(self.name)
 
 
 class TallyStockItem(TallyElement):
@@ -135,7 +150,13 @@ class TallyStockItem(TallyElement):
     @property
     def parent(self):
         if self._parent and self._parent != self.name:
-            return self._ctx.stockgroups[self._parent]
+            try:
+                return self._ctx.stockgroups[self._parent]
+            except KeyError:
+                print self.name
+                print self._parent
+                print self._ctx.stockgroups.keys()
+                raise
 
     @property
     def catgory(self):
@@ -179,19 +200,25 @@ class TallyStockItem(TallyElement):
         raise NotImplementedError
 
     @property
-    def godown(self):
+    def godowns(self):
         if self._godownname:
-            return self._ctx.godowns[self._godownname]
+            if ':' in self._godownname:
+                names = set(self._godownname.split(':'))
+            else:
+                names = [self._godownname]
+            return [self._ctx.godowns[x] for x in names]
+        else:
+            return []
 
     @property
     def path(self):
-        if self.parent:
-            return ' / '.join([self.parent.path, self.name])
+        if self.parent and self.parent.path:
+            return self.parent.path + [self.name]
         else:
-            return self.name
+            return [self.name]
 
     def __repr__(self):
-        return "<TallyStockItem {1}>".format(self.__class__, self.name)
+        return "<TallyStockItem {0}>".format(self.name)
 
 
 class TallyGodown(TallyElement):
@@ -211,7 +238,7 @@ class TallyGodown(TallyElement):
             return self._ctx.godowns[self._parent]
 
     def __repr__(self):
-        return "<TallyGodown {1}>".format(self.__class__, self.name)
+        return "<TallyGodown {0}>".format(self.name)
 
 
 class TallyVoucherType(TallyElement):
@@ -256,29 +283,8 @@ class TallyUnit(TallyElement):
         'conversion': ('conversion', float, False)
     }
 
-
-class TallyStockItemPosition(TallyElement):
-    elements = {
-        'name': ('name', str, True),
-        '_parent': ('parent', str, True),
-        '_baseunits': ('baseunits', str, True),
-        'closingbalance': ('closingbalance', str, True),
-        'closingvalue': ('closingvalue', str, True),
-        'closingrate': ('closingrate', str, True),
-    }
-
-    @property
-    def parent(self):
-        try:
-            return get_master().stockgroups[self._parent]
-        except KeyError:
-            warn("Could not find Parent {0} for {1}"
-                 "".format(self._parent, self.name))
-            return self._parent
-
-    @property
-    def baseunits(self):
-        return get_master().units[self._baseunits]
+    def __repr__(self):
+        return "<TallyUnit {0}>".format(self.name)
 
 
 class TallyStockMaster(TallyReport):
@@ -290,6 +296,9 @@ class TallyStockMaster(TallyReport):
         rn = etree.SubElement(rd, 'REPORTNAME')
         rn.text = 'List of Accounts'
         sv = etree.SubElement(rd, 'STATICVARIABLES')
+        if self.company_name:
+            svcc = etree.SubElement(sv, 'SVCURRENTCOMPANY', TYPE="String")
+            svcc.text = self.company_name
         svef = etree.SubElement(sv, 'SVEXPORTFORMAT')
         svef.text = '$$SysName:XML'
         at = etree.SubElement(sv, 'ACCOUNTTYPE')
@@ -306,6 +315,30 @@ class TallyStockMaster(TallyReport):
     }
 
 
+class TallyStockItemPosition(TallyElement):
+    elements = {
+        'name': ('name', str, True),
+        '_parent': ('parent', str, True),
+        '_baseunits': ('baseunits', str, True),
+        'closingbalance': ('closingbalance', str, True),
+        'closingvalue': ('closingvalue', str, True),
+        'closingrate': ('closingrate', str, True),
+    }
+
+    @property
+    def parent(self):
+        try:
+            return get_master(self._ctx.company_name).stockgroups[self._parent]
+        except KeyError:
+            warn("Could not find Parent {0} for {1}"
+                 "".format(self._parent, self.name))
+            return self._parent
+
+    @property
+    def baseunits(self):
+        return get_master(self._ctx.company_name).units[self._baseunits]
+
+
 class TallyStockPosition(TallyReport):
     _cachename = 'TallyStockPosition'
     _header = TallyRequestHeader(1, 'Export', 'Collection',
@@ -316,6 +349,9 @@ class TallyStockPosition(TallyReport):
         sv = etree.SubElement(r, 'STATICVARIABLES')
         svef = etree.SubElement(sv, 'SVEXPORTFORMAT')
         svef.text = '$$SysName:XML'
+        if self.company_name:
+            svcc = etree.SubElement(sv, 'SVCURRENTCOMPANY', TYPE="String")
+            svcc.text = self.company_name
         svec = etree.SubElement(sv, 'ENCODINGTYPE')
         svec.text = 'UNICODE'
         tdl = etree.SubElement(r, 'TDL')
@@ -335,45 +371,129 @@ class TallyStockPosition(TallyReport):
     }
 
 
+def _strip_unit(value, baseunit):
+    return value.rstrip(baseunit.name)
+
+
+def _rewrite_mass(value, baseunit):
+    if isinstance(baseunit, TallyUnit):
+        uname = baseunit.name
+    else:
+        uname = baseunit
+    if uname.strip() == 'gm':
+        value = value.replace(' gm', ' g')
+    elif uname.strip() == 'Kg':
+        value = value.replace(' Kg', ' kg')
+    return value
+
+
 class InventoryTallyReader(InventoryReaderBase):
-    def __init__(self, tfpath):
+    def __init__(self, sname=None, location=None, company_name=None,
+                 godown_name=None, tfpath=''):
+        self._location = location
+        self._sname = sname
+        self._company_name = company_name
+        self._godown_name = godown_name
         super(InventoryTallyReader, self).__init__(tfpath)
 
+    _typeclass = {
+        'qty': (int, _strip_unit),
+        'Pc':  (int, _strip_unit),
+        'gm': (Mass, _rewrite_mass),
+        'Kg': (Mass, _rewrite_mass),
+        'ft': (Length, None),
+        'cm': (Length, None),
+        'Inch': (Length, None),
+        'Feet': (Length, None),
+        'meter': (Length, None),
+        'mtr': (Length, None),
+    }
+
+    def _parse_quantity(self, value, item):
+        masteritem = get_master(self._company_name).stockitems[item.name]
+        additionalunits = masteritem.additionalunits
+        baseunit = item.baseunits
+        if not value:
+            return 0
+        if additionalunits:
+            value = value.split('=')[0]
+        value = value.strip()
+        if baseunit.issimpleunit:
+            unitname = baseunit.name.strip()
+            if self._typeclass[unitname][1]:
+                value = self._typeclass[unitname][1](value, baseunit)
+            return self._typeclass[unitname][0](value)
+        else:
+            # Very ugly hacks
+            uparts = baseunit.name.split(' of ')
+            assert len(uparts) == 2
+            uparts[1] = uparts[1].split()[1]
+            if self._typeclass[uparts[0]][0] == self._typeclass[uparts[1]][0]:
+                vparts = value.split(' ')
+                plen = len(vparts) / 2
+                assert plen * 2 == len(vparts)
+                vpart0 = ' '.join(vparts[0:plen])
+                if self._typeclass[uparts[0]][1]:
+                    vpart0 = self._typeclass[uparts[0]][1](vpart0, uparts[0])
+                rv = self._typeclass[uparts[0]][0](vpart0)
+                vpart1 = ' '.join(vparts[plen:])
+                if self._typeclass[uparts[1]][1]:
+                    vpart1 = self._typeclass[uparts[1]][1](vpart1, uparts[1])
+                rv += self._typeclass[uparts[1]][0](vpart1)
+                return rv
+        raise ValueError
+
     def _row_gen(self):
-        if not master_available:
-            get_master()
-        pass
+        position = get_position(self._company_name)
+        for name, item in iteritems(position.items):
+            imaster = get_master(self._company_name).stockitems[name]
+            try:
+                # TODO Needs a godown filter here if the XML tags ever surface
+                qty = self._parse_quantity(item.closingbalance, item)
+                meta = {'godowns': [x.name for x in imaster.godowns],
+                        'path': ' / '.join(imaster.parent.path) if imaster.parent else None}  # noqa
+                yield name, qty, meta
+            except (ParseException, ValueError):
+                pass
+
+    def dump(self):
+        position = get_position(self._company_name)
+        idx = 0
+        for name, item in iteritems(position.items):
+            idx += 1
+            try:
+                qstring = '{3:4} {0:>10} {1:40} {2}'.format(
+                    self._parse_quantity(item.closingbalance, item),
+                    item.name, item.baseunits, idx
+                )
+                print(qstring)
+            except (ParseException, ValueError, AssertionError) as e:
+                master = get_master(self._company_name).stockitems[name]
+                print(name, item.closingbalance, item.baseunits,
+                      item.baseunits.issimpleunit, master.additionalunits, e)
 
 
-def get_master(force=False):
-    global _master
-    global master_available
-    if not force and master_available:
-        return _master
+def get_master(company_name, force=False):
+    global _masters
+    if not force and company_name in _masters.keys():
+        return _masters[company_name]
     try:
-        _master = TallyStockMaster()
-        master_available = True
+        _masters[company_name] = TallyStockMaster(company_name)
     except TallyNotAvailable:
-        _master = None
-        master_available = False
-    return _master
+        _masters[company_name] = None
+    return _masters[company_name]
 
-master_available = False
-_master = None
+_masters = {}
 
 
-def get_position(force=False):
-    global _position
-    global position_available
-    if not force and position_available:
-        return _position
+def get_position(company_name, force=False):
+    global _positions
+    if not force and company_name in _positions.keys():
+        return _positions
     try:
-        _position = TallyStockPosition()
-        position_available = True
+        _positions[company_name] = TallyStockPosition(company_name)
     except TallyNotAvailable:
-        _position = None
-        position_available = False
-    return _position
+        _positions[company_name] = None
+    return _positions[company_name]
 
-position_available = False
-_position = None
+_positions = {}

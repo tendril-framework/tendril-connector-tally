@@ -23,19 +23,23 @@ Docstring for __init__.py
 """
 
 import requests
+from copy import copy
 from six import iteritems
 from lxml import etree
 from StringIO import StringIO
 from collections import namedtuple
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
+from requests.structures import CaseInsensitiveDict
 from .cache import cachefs
 
 try:
     from tendril.utils.config import TALLY_HOST
+    from tendril.utils.config import TALLY_PORT
     from tendril.inventory.acquire import MasterNotAvailable
 except ImportError:
     TALLY_HOST = 'localhost'
+    TALLY_PORT = 9002
     MasterNotAvailable = ConnectionError
 
 
@@ -74,7 +78,13 @@ class TallyElement(TallyObject):
     def _populate(self):
         for k, v in iteritems(self.elements):
             try:
-                val = v[1](self._soup.findChild(v[0]).text)
+                candidates = self._soup.findChildren(v[0])
+                if v[1] == str:
+                    val = ':'.join([v[1](c.text) for c in candidates])
+                else:
+                    if len(candidates) > 1:
+                        raise Exception(k, v, candidates)
+                    val = v[1](candidates[0].text)
             except (TypeError, AttributeError):
                 if not v[2]:
                     val = None
@@ -91,9 +101,24 @@ class TallyReport(object):
     _cachename = None
     _content = {}
 
-    def __init__(self):
+    def __init__(self, company_name):
         self._xion = None
         self._soup = None
+        self._company_name = company_name
+
+    @property
+    def company_name(self):
+        return self._company_name
+
+    @property
+    def cachename(self):
+        if not self._cachename:
+            return None
+        company_name = copy(self.company_name)
+        company_name = company_name.replace(' ', '_')
+        company_name = company_name.replace('.', '')
+        company_name = company_name.replace('-', '')
+        return "{0}.{1}".format(self._cachename, company_name)
 
     @staticmethod
     def _build_fetchlist(parent, fetchlist):
@@ -125,11 +150,11 @@ class TallyReport(object):
         self._xion = TallyXMLEngine()
         query = TallyQueryParameters(self._build_request_header(),
                                      self._build_request_body())
-        self._soup = self._xion.execute(query, cachename=self._cachename)
+        self._soup = self._xion.execute(query, cachename=self.cachename)
 
     def _acquire_cached_raw_response(self):
         try:
-            with cachefs.open(self._cachename + '.xml', 'rb') as f:
+            with cachefs.open(self.cachename + '.xml', 'rb') as f:
                 content = f.read()
             self._soup = BeautifulSoup(content, 'lxml')
         except:
@@ -141,7 +166,7 @@ class TallyReport(object):
             try:
                 self._acquire_raw_response()
             except TallyNotAvailable:
-                if cachefs and self._cachename:
+                if cachefs and self.cachename:
                     self._acquire_cached_raw_response()
                 else:
                     raise
@@ -153,9 +178,10 @@ class TallyReport(object):
         soup = self.soup
         if self._container:
             soup = soup.find(self._container)
-        val = {y.name: y
-               for y in [self._content[item][1](x, self)
-                         for x in soup.findAll(self._content[item][0])]}
+        val = CaseInsensitiveDict()
+        for y in [self._content[item][1](x, self)
+                  for x in soup.findAll(self._content[item][0])]:
+            val[y.name] = y
         self.__setattr__(item, val)
         return val
 
@@ -171,7 +197,7 @@ class TallyXMLEngine(object):
     def execute(self, query, cachename=None):
         self.query = query
         headers = {'Content-Type': 'application/xml'}
-        uri = 'http://{0}:9002'.format(TALLY_HOST)
+        uri = 'http://{0}:{1}'.format(TALLY_HOST, TALLY_PORT)
         xmlstring = StringIO()
         self.query.write(xmlstring)
         try:

@@ -29,6 +29,7 @@ from lxml import etree
 from StringIO import StringIO
 from collections import namedtuple
 from bs4 import BeautifulSoup
+from datetime import date
 from requests.exceptions import ConnectionError
 from requests.structures import CaseInsensitiveDict
 from .cache import cachefs
@@ -125,6 +126,36 @@ class TallyReport(object):
         for item in fetchlist:
             f = etree.SubElement(parent, 'FETCH')
             f.text = item
+
+    @staticmethod
+    def _get_financial_year(dt):
+        if dt.month >= 4:
+            start = date(dt.year, 4, 1)
+            end = date(dt.year + 1, 3, 31)
+        else:
+            start = date(dt.year - 1, 4, 1)
+            end = date(dt.year, 3, 31)
+        return start, end
+
+    def _set_request_date(self, svnode, dt=None):
+        if not dt:
+            dt = date.today()
+        start, end = self._get_financial_year(dt)
+        svfd = etree.SubElement(svnode, 'SVFROMDATE', TYPE='Date')
+        svfd.text = start.strftime("%d-%m-%Y")
+        svtd = etree.SubElement(svnode, 'SVTODATE', TYPE='Date')
+        svtd.text = end.strftime("%d-%m-%Y")
+        svcd = etree.SubElement(svnode, 'SVCURRENTDATE', TYPE='Date')
+        svcd.text = dt.strftime("%d-%m-%Y")
+
+    def _set_request_staticvariables(self, svnode):
+        svef = etree.SubElement(svnode, 'SVEXPORTFORMAT')
+        svef.text = '$$SysName:XML'
+        svec = etree.SubElement(svnode, 'ENCODINGTYPE')
+        svec.text = 'UNICODE'
+        if self.company_name:
+            svcc = etree.SubElement(svnode, 'SVCURRENTCOMPANY', TYPE="String")
+            svcc.text = self.company_name
 
     def _build_request_body(self):
         raise NotImplementedError

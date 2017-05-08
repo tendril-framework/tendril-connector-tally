@@ -83,7 +83,10 @@ class TallyStockGroup(TallyElement):
     @property
     def baseunits(self):
         if self._baseunits:
-            return self._ctx.units[self._baseunits]
+            try:
+                return self._ctx.units[self._baseunits]
+            except KeyError:
+                return None
 
     @property
     def additionalunits(self):
@@ -166,7 +169,10 @@ class TallyStockItem(TallyElement):
     @property
     def baseunits(self):
         if self._baseunits:
-            return self._ctx.units[self._baseunits]
+            try:
+                return self._ctx.units[self._baseunits]
+            except KeyError:
+                return None
 
     @property
     def additionalunits(self):
@@ -296,11 +302,7 @@ class TallyStockMaster(TallyReport):
         rn = etree.SubElement(rd, 'REPORTNAME')
         rn.text = 'List of Accounts'
         sv = etree.SubElement(rd, 'STATICVARIABLES')
-        if self.company_name:
-            svcc = etree.SubElement(sv, 'SVCURRENTCOMPANY', TYPE="String")
-            svcc.text = self.company_name
-        svef = etree.SubElement(sv, 'SVEXPORTFORMAT')
-        svef.text = '$$SysName:XML'
+        self._set_request_staticvariables(sv)
         at = etree.SubElement(sv, 'ACCOUNTTYPE')
         at.text = 'All Inventory Masters'
         return etree.ElementTree(r)
@@ -336,7 +338,11 @@ class TallyStockItemPosition(TallyElement):
 
     @property
     def baseunits(self):
-        return get_master(self._ctx.company_name).units[self._baseunits]
+        if getattr(self, '_baseunits', None):
+            try:
+                return get_master(self._ctx.company_name).units[self._baseunits]
+            except KeyError:
+                return None
 
 
 class TallyStockPosition(TallyReport):
@@ -347,13 +353,8 @@ class TallyStockPosition(TallyReport):
     def _build_request_body(self):
         r = etree.Element('DESC')
         sv = etree.SubElement(r, 'STATICVARIABLES')
-        svef = etree.SubElement(sv, 'SVEXPORTFORMAT')
-        svef.text = '$$SysName:XML'
-        if self.company_name:
-            svcc = etree.SubElement(sv, 'SVCURRENTCOMPANY', TYPE="String")
-            svcc.text = self.company_name
-        svec = etree.SubElement(sv, 'ENCODINGTYPE')
-        svec.text = 'UNICODE'
+        self._set_request_staticvariables(sv)
+        self._set_request_date(sv)
         tdl = etree.SubElement(r, 'TDL')
         tdlmessage = etree.SubElement(tdl, 'TDLMESSAGE')
         collection = etree.SubElement(tdlmessage, 'COLLECTION', ISMODIFY='No',
@@ -367,7 +368,7 @@ class TallyStockPosition(TallyReport):
 
     _container = 'collection'
     _content = {
-        'items': ('stockitem', TallyStockItemPosition)
+        'stockitems': ('stockitem', TallyStockItemPosition)
     }
 
 
@@ -445,7 +446,7 @@ class InventoryTallyReader(InventoryReaderBase):
 
     def _row_gen(self):
         position = get_position(self._company_name)
-        for name, item in iteritems(position.items):
+        for name, item in iteritems(position.stockitems):
             imaster = get_master(self._company_name).stockitems[name]
             try:
                 # TODO Needs a godown filter here if the XML tags ever surface
@@ -459,7 +460,7 @@ class InventoryTallyReader(InventoryReaderBase):
     def dump(self):
         position = get_position(self._company_name)
         idx = 0
-        for name, item in iteritems(position.items):
+        for name, item in iteritems(position.stockitems):
             idx += 1
             try:
                 qstring = '{3:4} {0:>10} {1:40} {2}'.format(
@@ -489,7 +490,7 @@ _masters = {}
 def get_position(company_name, force=False):
     global _positions
     if not force and company_name in _positions.keys():
-        return _positions
+        return _positions[company_name]
     try:
         _positions[company_name] = TallyStockPosition(company_name)
     except TallyNotAvailable:

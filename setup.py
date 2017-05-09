@@ -18,7 +18,7 @@ requirements = [
     'lxml',
     'bs4',
     'requests',
-    'fs',
+    'fs==0.5.4',
     # 'tendril', # Install manually
 ]
 
@@ -28,7 +28,7 @@ test_requirements = [
 
 setup(
     name='tendril-connector-tally',
-    version='0.1.0',
+    version='0.1.1',
     description="Tally XML interface connector for tendril",
     long_description=readme,
     author="Chintalagiri Shashank",

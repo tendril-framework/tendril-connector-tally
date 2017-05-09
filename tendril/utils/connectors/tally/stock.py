@@ -27,6 +27,7 @@ from lxml import etree
 from warnings import warn
 from decimal import Decimal
 from decimal import DecimalException
+from requests.structures import CaseInsensitiveDict
 from tendril.inventory.acquire import InventoryReaderBase
 
 from . import TallyReport
@@ -141,7 +142,7 @@ class TallyStockItem(TallyElement):
         'allowuseofexpireditems': ('allowuseofexpireditems', yesorno, True),  # TODO Inherit
         'ignorebatches': ('ignorebatches', yesorno, True),  # TODO Inherit
         'ignoregodowns': ('ignoregodowns', yesorno, True),  # TODO Inherit
-        'calconmrp': ('calconmrp', yesorno, True),  # TODO Inherit
+        'calconmrp': ('calconmrp', yesorno, False),  # TODO Inherit
         'excludejrnlforvaluation': ('excludejrnlforvaluation', yesorno, True),  # TODO Inherit
         '_openingbalance': ('openingbalance', str, True),
         '_openingvalue': ('openingvalue', str, True),
@@ -397,7 +398,7 @@ class InventoryTallyReader(InventoryReaderBase):
         self._godown_name = godown_name
         super(InventoryTallyReader, self).__init__(tfpath)
 
-    _typeclass = {
+    _typeclass = CaseInsensitiveDict({
         'qty': (int, _strip_unit),
         'Pc':  (int, _strip_unit),
         'gm': (Mass, _rewrite_mass),
@@ -408,7 +409,7 @@ class InventoryTallyReader(InventoryReaderBase):
         'Feet': (Length, None),
         'meter': (Length, None),
         'mtr': (Length, None),
-    }
+    })
 
     def _parse_quantity(self, value, item):
         masteritem = get_master(self._company_name).stockitems[item.name]

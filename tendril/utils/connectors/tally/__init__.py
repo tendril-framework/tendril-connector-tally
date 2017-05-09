@@ -83,10 +83,12 @@ class TallyElement(TallyObject):
                 if v[1] == str:
                     val = ':'.join([v[1](c.text) for c in candidates])
                 else:
+                    if len(candidates) == 0:
+                        pass
                     if len(candidates) > 1:
                         raise Exception(k, v, candidates)
                     val = v[1](candidates[0].text)
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, IndexError):
                 if not v[2]:
                     val = None
                 else:

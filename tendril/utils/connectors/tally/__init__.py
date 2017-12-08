@@ -26,7 +26,7 @@ import requests
 from copy import copy
 from six import iteritems
 from lxml import etree
-from StringIO import StringIO
+from six import StringIO
 from collections import namedtuple
 from bs4 import BeautifulSoup
 from datetime import date
@@ -189,7 +189,7 @@ class TallyReport(object):
         try:
             with cachefs.open(self.cachename + '.xml', 'rb') as f:
                 content = f.read()
-            self._soup = BeautifulSoup(content, 'lxml')
+            self._soup = BeautifulSoup(content.decode('utf-8', 'ignore'), 'lxml')
         except:
             raise TallyNotAvailable
 
@@ -240,7 +240,7 @@ class TallyXMLEngine(object):
         if cachefs and cachename:
             with cachefs.open(cachename + '.xml', 'wb') as f:
                 f.write(r.content)
-        self._response = BeautifulSoup(r.content, 'lxml')
+        self._response = BeautifulSoup(r.content.decode('utf-8', 'ignore'), 'lxml')
         return self._response
 
     @staticmethod

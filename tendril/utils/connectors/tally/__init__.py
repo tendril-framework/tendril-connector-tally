@@ -37,11 +37,9 @@ from .cache import cachefs
 try:
     from tendril.utils.config import TALLY_HOST
     from tendril.utils.config import TALLY_PORT
-    from tendril.inventory.acquire import MasterNotAvailable
 except ImportError:
     TALLY_HOST = 'localhost'
     TALLY_PORT = 9002
-    MasterNotAvailable = ConnectionError
 
 
 TallyQueryParameters = namedtuple('TallyQueryParameters',
@@ -51,7 +49,7 @@ TallyRequestHeader = namedtuple('TallyRequestHeader',
                                 'version tallyrequest type id')
 
 
-class TallyNotAvailable(MasterNotAvailable):
+class TallyNotAvailable(ConnectionError):
     pass
 
 

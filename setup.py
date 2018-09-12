@@ -14,12 +14,12 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = [
+    'tendril-utils-core',
     'six',
     'lxml',
     'bs4',
     'requests',
     'fs==0.5.4',
-    # 'tendril', # Install manually
 ]
 
 test_requirements = [
@@ -28,7 +28,7 @@ test_requirements = [
 
 setup(
     name='tendril-connector-tally',
-    version='0.1.1',
+    version='0.1.2',
     description="Tally XML interface connector for tendril",
     long_description=readme,
     author="Chintalagiri Shashank",

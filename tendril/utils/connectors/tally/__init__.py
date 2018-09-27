@@ -198,6 +198,8 @@ class TallyReport(object):
                 self._acquire_raw_response()
             except TallyNotAvailable:
                 if cachefs and self.cachename:
+                    print("Trying to return cached response for {0} from {1}"
+                          "".format(self.cachename, cachefs))
                     self._acquire_cached_raw_response()
                 else:
                     raise
@@ -232,8 +234,11 @@ class TallyXMLEngine(object):
         xmlstring = StringIO()
         self.query.write(xmlstring)
         try:
+            print("Sending Tally request to {0}".format(uri))
             r = requests.post(uri, data=xmlstring.getvalue(), headers=headers)
-        except ConnectionError:
+        except ConnectionError as e:
+            print("Got Exception")
+            print(e)
             raise TallyNotAvailable
         if cachefs and cachename:
             with cachefs.open(cachename + '.xml', 'wb') as f:

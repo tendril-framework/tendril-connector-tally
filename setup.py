@@ -28,7 +28,7 @@ test_requirements = [
 
 setup(
     name='tendril-connector-tally',
-    version='0.1.2',
+    version='0.1.3',
     description="Tally XML interface connector for tendril",
     long_description=readme,
     author="Chintalagiri Shashank",

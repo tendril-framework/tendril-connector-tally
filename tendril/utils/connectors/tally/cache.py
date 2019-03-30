@@ -27,7 +27,7 @@ from fs.opener import fsopendir
 from fs.errors import RemoteConnectionError
 
 try:
-    from tendril.utils.config import TALLY_CACHE
+    from tendril.config.legacy import TALLY_CACHE
 except ImportError:
     TALLY_CACHE = None
 

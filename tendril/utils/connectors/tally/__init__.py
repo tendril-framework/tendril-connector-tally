@@ -35,8 +35,8 @@ from requests.structures import CaseInsensitiveDict
 from .cache import cachefs
 
 try:
-    from tendril.utils.config import TALLY_HOST
-    from tendril.utils.config import TALLY_PORT
+    from tendril.config.legacy import TALLY_HOST
+    from tendril.config.legacy import TALLY_PORT
 except ImportError:
     TALLY_HOST = 'localhost'
     TALLY_PORT = 9002

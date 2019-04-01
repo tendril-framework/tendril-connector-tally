@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (C) 2017 Chintalagiri Shashank
+# Copyright (C) 2019 Chintalagiri Shashank
 #
-# This file is part of tendril-connector-tally.
+# This file is part of tendril.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -18,29 +18,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Docstring for cache
-"""
+from pkgutil import extend_path
+__path__ = extend_path(__path__, __name__)
 
-from fs.rpcfs import RPCFS
-from fs.opener import fsopendir
-from fs.errors import RemoteConnectionError
+from tendril.utils.config import ConfigManager
+_manager = ConfigManager(prefix='tendril.config',
+                         legacy='tendril.config.legacy',
+                         excluded=['tendril.config.legacy'])
 
-try:
-    from tendril.config import TALLY_CACHE
-except ImportError:
-    TALLY_CACHE = None
-
-
-def _cache_init():
-    if TALLY_CACHE.startswith('rpc://'):
-        try:
-            l_cache_fs = RPCFS('http://' + TALLY_CACHE[len('rpc://'):])
-        except RemoteConnectionError:
-            return None
-    else:
-        l_cache_fs = fsopendir(TALLY_CACHE, create_dir=True)
-    return l_cache_fs
-
-
-cachefs = _cache_init()
+import sys
+sys.modules[__name__] = _manager

@@ -53,14 +53,6 @@ class TallyNotAvailable(ConnectionError):
     pass
 
 
-def yesorno(s):
-    if s == 'Yes':
-        return True
-    elif s == 'No':
-        return False
-    raise ValueError
-
-
 class TallyObject(object):
     def __init__(self, soup):
         self._soup = soup
@@ -73,8 +65,9 @@ class TallyElement(TallyObject):
         self._populate()
 
     elements = {}
+    attrs = {}
 
-    def _populate(self):
+    def _process_elements(self):
         for k, v in iteritems(self.elements):
             try:
                 candidates = self._soup.findChildren(v[0])
@@ -94,6 +87,21 @@ class TallyElement(TallyObject):
             except ValueError:
                 raise
             setattr(self, k, val)
+
+    def _process_attrs(self):
+        for k, v in iteritems(self.attrs):
+            try:
+                val = v[1](self._soup.attrs[v[0]])
+            except:
+                if not v[2]:
+                    val = None
+                else:
+                    raise
+            setattr(self, k, val)
+
+    def _populate(self):
+        self._process_elements()
+        self._process_attrs()
 
 
 class TallyReport(object):

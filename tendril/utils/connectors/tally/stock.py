@@ -25,11 +25,14 @@ Docstring for stock
 from lxml import etree
 from warnings import warn
 
+from .utils import yesorno
+
 from . import TallyReport
 from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
-from . import yesorno
+
+from .masters import get_masters
 
 
 class TallyStockGroup(TallyElement):
@@ -234,76 +237,6 @@ class TallyGodown(TallyElement):
         return "<TallyGodown {0}>".format(self.name)
 
 
-class TallyVoucherType(TallyElement):
-    elements = {
-        'name': ('name', str, True),
-        '_parent': ('parent', str, True),
-        'mailingname': ('mailingname', str, True),
-        'numberingmethod': ('numberingmethod', str, True),
-        'isdeemedpositive': ('isdeemedpositive', yesorno, False),
-        'affectsstock': ('affectsstock', yesorno, False),
-        'preventduplicates': ('preventduplicates', yesorno, False),
-        'prefillzero': ('prefillzero', yesorno, False),
-        'printaftersave': ('printaftersave', yesorno, False),
-        'formalreceipt': ('formalreceipt', yesorno, False),
-        'isoptional': ('isoptional', yesorno, False),
-        'asmfgjrnl': ('asmfgjrnl', yesorno, False),
-        'effectivedate': ('effectivedate', yesorno, False),
-        'commonnarration': ('commonnarration', yesorno, False),
-        'multinarration': ('multinarration', yesorno, False),
-        'istaxinvoice': ('istaxinvoice', yesorno, False),
-        'useforposinvoice': ('useforposinvoice', yesorno, False),
-        'useforexcisetraderinvoice': ('useforexcisetraderinvoice', yesorno, False),  # noqa
-        'useforexcise': ('useforexcise', yesorno, False),
-        'useforjobwork': ('useforjobwork', yesorno, False),
-        'isforjobworkin': ('isforjobworkin', yesorno, False),
-        'allowconsumption': ('allowconsumption', yesorno, False),
-    }
-
-    @property
-    def parent(self):
-        if self._parent and self._parent != self.name:
-            return self._ctx.vouchertypes[self._parent]
-
-
-class TallyUnit(TallyElement):
-    elements = {
-        'name': ('name', str, True),
-        'originalname': ('originalname', str, False),
-        'decimalplaces': ('decimalplaces', int, True),
-        'issimpleunit': ('issimpleunit', yesorno, True),
-        'additionalunits': ('additionalunits', str, False),
-        'conversion': ('conversion', float, False)
-    }
-
-    def __repr__(self):
-        return "<TallyUnit {0}>".format(self.name)
-
-
-class TallyStockMaster(TallyReport):
-    _cachename = 'TallyStockMaster'
-
-    def _build_request_body(self):
-        r = etree.Element('EXPORTDATA')
-        rd = etree.SubElement(r, 'REQUESTDESC')
-        rn = etree.SubElement(rd, 'REPORTNAME')
-        rn.text = 'List of Accounts'
-        sv = etree.SubElement(rd, 'STATICVARIABLES')
-        self._set_request_staticvariables(sv)
-        at = etree.SubElement(sv, 'ACCOUNTTYPE')
-        at.text = 'All Inventory Masters'
-        return etree.ElementTree(r)
-
-    _content = {
-        'stockitems': ('stockitem', TallyStockItem),
-        'stockgroups': ('stockgroup', TallyStockGroup),
-        'stockcategories': ('stockcatogory', TallyStockCategory),
-        'godowns': ('godown', TallyGodown),
-        'vouchertypes': ('vouchertype', TallyVoucherType),
-        'units': ('unit', TallyUnit)
-    }
-
-
 class TallyStockItemPosition(TallyElement):
     elements = {
         'name': ('name', str, True),
@@ -317,7 +250,7 @@ class TallyStockItemPosition(TallyElement):
     @property
     def parent(self):
         try:
-            return get_master(self._ctx.company_name).stockgroups[self._parent]
+            return get_masters(self._ctx.company_name).stockgroups[self._parent]
         except KeyError:
             warn("Could not find Parent {0} for {1}"
                  "".format(self._parent, self.name))
@@ -327,7 +260,7 @@ class TallyStockItemPosition(TallyElement):
     def baseunits(self):
         if getattr(self, '_baseunits', None):
             try:
-                return get_master(self._ctx.company_name).units[self._baseunits]
+                return get_masters(self._ctx.company_name).units[self._baseunits]
             except KeyError:
                 return None
 
@@ -357,20 +290,6 @@ class TallyStockPosition(TallyReport):
     _content = {
         'stockitems': ('stockitem', TallyStockItemPosition)
     }
-
-
-def get_master(company_name, force=False):
-    global _masters
-    if not force and company_name in _masters.keys():
-        return _masters[company_name]
-    try:
-        _masters[company_name] = TallyStockMaster(company_name)
-    except TallyNotAvailable:
-        _masters[company_name] = None
-    return _masters[company_name]
-
-
-_masters = {}
 
 
 def get_position(company_name, force=False):

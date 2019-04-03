@@ -32,8 +32,6 @@ from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
 
-import masters
-
 
 class TallyStockGroup(TallyElement):
     elements = {
@@ -61,7 +59,7 @@ class TallyStockGroup(TallyElement):
     @property
     def parent(self):
         if self._parent and self._parent != self.name:
-            return self._ctx.stockgroups[self._parent]
+            return self.company_masters.stockgroups[self._parent]
 
     @property
     def path(self):
@@ -74,14 +72,14 @@ class TallyStockGroup(TallyElement):
     def baseunits(self):
         if self._baseunits:
             try:
-                return self._ctx.units[self._baseunits]
+                return self.company_masters.units[self._baseunits]
             except KeyError:
                 return None
 
     @property
     def additionalunits(self):
         if self._additionalunits:
-            return self._ctx.units[self._additionalunits]
+            return self.company_masters.units[self._additionalunits]
 
     def __repr__(self):
         return "<TallyStockGroup {0}>".format(self.name)
@@ -97,7 +95,7 @@ class TallyStockCategory(TallyElement):
     @property
     def parent(self):
         if self._parent and self._parent != self.name:
-            return self._ctx.stockcategories[self._parent]
+            return self.company_masters.stockcategories[self._parent]
 
     def __repr__(self):
         return "<TallyStockCategory {0}>".format(self.name)
@@ -144,30 +142,30 @@ class TallyStockItem(TallyElement):
     def parent(self):
         if self._parent and self._parent != self.name:
             try:
-                return self._ctx.stockgroups[self._parent]
+                return self.company_masters.stockgroups[self._parent]
             except KeyError:
                 print(self.name)
                 print(self._parent)
-                print(self._ctx.stockgroups.keys())
+                print(self.company_masters.stockgroups.keys())
                 raise
 
     @property
     def catgory(self):
         if self._parent and self._parent != self.name:
-            return self._ctx.stockcategories[self._parent]
+            return self.company_masters.stockcategories[self._parent]
 
     @property
     def baseunits(self):
         if self._baseunits:
             try:
-                return self._ctx.units[self._baseunits]
+                return self.company_masters.units[self._baseunits]
             except KeyError:
                 return None
 
     @property
     def additionalunits(self):
         if self._additionalunits:
-            return self._ctx.units[self._additionalunits]
+            return self.company_masters.units[self._additionalunits]
 
     @property
     def costingmethod(self):
@@ -202,7 +200,7 @@ class TallyStockItem(TallyElement):
                 names = set(self._godownname.split(':'))
             else:
                 names = [self._godownname]
-            return [self._ctx.godowns[x] for x in names]
+            return [self.company_masters.godowns[x] for x in names]
         else:
             return []
 
@@ -231,7 +229,7 @@ class TallyGodown(TallyElement):
     @property
     def parent(self):
         if self._parent and self._parent != self.name:
-            return self._ctx.godowns[self._parent]
+            return self.company_masters.godowns[self._parent]
 
     def __repr__(self):
         return "<TallyGodown {0}>".format(self.name)
@@ -250,7 +248,7 @@ class TallyStockItemPosition(TallyElement):
     @property
     def parent(self):
         try:
-            return masters.get_master(self._ctx.company_name).stockgroups[self._parent]
+            return self.company_masters.stockgroups[self._parent]
         except KeyError:
             warn("Could not find Parent {0} for {1}"
                  "".format(self._parent, self.name))
@@ -260,7 +258,7 @@ class TallyStockItemPosition(TallyElement):
     def baseunits(self):
         if getattr(self, '_baseunits', None):
             try:
-                return masters.get_master(self._ctx.company_name).units[self._baseunits]
+                return self.company_masters.units[self._baseunits]
             except KeyError:
                 return None
 

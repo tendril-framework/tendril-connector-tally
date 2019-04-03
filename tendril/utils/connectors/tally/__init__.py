@@ -68,6 +68,15 @@ class TallyElement(TallyObject):
     attrs = {}
     lists = {}
 
+    @property
+    def company_name(self):
+        return self._ctx.company_name
+
+    @property
+    def company_masters(self):
+        import masters
+        return masters.get_master(self.company_name)
+
     def _process_elements(self):
         for k, v in iteritems(self.elements):
             try:

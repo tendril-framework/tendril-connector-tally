@@ -32,7 +32,7 @@ from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
 
-from .masters import get_masters
+import masters
 
 
 class TallyStockGroup(TallyElement):
@@ -250,7 +250,7 @@ class TallyStockItemPosition(TallyElement):
     @property
     def parent(self):
         try:
-            return get_masters(self._ctx.company_name).stockgroups[self._parent]
+            return masters.get_master(self._ctx.company_name).stockgroups[self._parent]
         except KeyError:
             warn("Could not find Parent {0} for {1}"
                  "".format(self._parent, self.name))
@@ -260,7 +260,7 @@ class TallyStockItemPosition(TallyElement):
     def baseunits(self):
         if getattr(self, '_baseunits', None):
             try:
-                return get_masters(self._ctx.company_name).units[self._baseunits]
+                return masters.get_master(self._ctx.company_name).units[self._baseunits]
             except KeyError:
                 return None
 

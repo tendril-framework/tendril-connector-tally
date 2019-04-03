@@ -29,9 +29,9 @@ from lxml import etree
 from six import StringIO
 from collections import namedtuple
 from bs4 import BeautifulSoup
-from datetime import date
 from requests.exceptions import ConnectionError
 from requests.structures import CaseInsensitiveDict
+from .utils import get_date_range
 from .cache import cachefs
 
 try:
@@ -59,13 +59,14 @@ class TallyObject(object):
 
 
 class TallyElement(TallyObject):
-    def __init__(self, soup, ctx):
+    def __init__(self, soup, ctx=None):
         super(TallyElement, self).__init__(soup)
         self._ctx = ctx
         self._populate()
 
     elements = {}
     attrs = {}
+    lists = {}
 
     def _process_elements(self):
         for k, v in iteritems(self.elements):
@@ -99,9 +100,16 @@ class TallyElement(TallyObject):
                     raise
             setattr(self, k, val)
 
+    def _process_lists(self):
+        for k, v in iteritems(self.lists):
+            candidates = self._soup.findChildren(v[0] + '.list')
+            val = [v[1](c) for c in candidates]
+            setattr(self, k, val)
+
     def _populate(self):
         self._process_elements()
         self._process_attrs()
+        self._process_lists()
 
 
 class TallyReport(object):
@@ -135,26 +143,14 @@ class TallyReport(object):
             f = etree.SubElement(parent, 'FETCH')
             f.text = item
 
-    @staticmethod
-    def _get_financial_year(dt):
-        if dt.month >= 4:
-            start = date(dt.year, 4, 1)
-            end = date(dt.year + 1, 3, 31)
-        else:
-            start = date(dt.year - 1, 4, 1)
-            end = date(dt.year, 3, 31)
-        return start, end
-
-    def _set_request_date(self, svnode, dt=None):
-        if not dt:
-            dt = date.today()
-        start, end = self._get_financial_year(dt)
+    def _set_request_date(self, svnode, dt=None, end_dt=None):
+        (start, end), current = get_date_range(dt, end_dt)
         svfd = etree.SubElement(svnode, 'SVFROMDATE', TYPE='Date')
         svfd.text = start.strftime("%d-%m-%Y")
         svtd = etree.SubElement(svnode, 'SVTODATE', TYPE='Date')
         svtd.text = end.strftime("%d-%m-%Y")
         svcd = etree.SubElement(svnode, 'SVCURRENTDATE', TYPE='Date')
-        svcd.text = dt.strftime("%d-%m-%Y")
+        svcd.text = current.strftime("%d-%m-%Y")
 
     def _set_request_staticvariables(self, svnode):
         svef = etree.SubElement(svnode, 'SVEXPORTFORMAT')

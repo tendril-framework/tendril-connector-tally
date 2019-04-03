@@ -20,6 +20,7 @@ requirements = [
     'bs4',
     'requests',
     'fs==0.5.4',
+    'arrow',
 ]
 
 test_requirements = [

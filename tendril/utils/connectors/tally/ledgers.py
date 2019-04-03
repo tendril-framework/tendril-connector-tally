@@ -34,6 +34,16 @@ from . import TallyNotAvailable
 from . import TallyElement
 
 
+class TallyLedgerMaster(TallyElement):
+    attrs = {
+        'name': ('name', str, True),
+        'reservedname': ('reservedname', str, False),
+    }
+
+    def __repr__(self):
+        return "<TallyLedgerMaster {0}>".format(self.name)
+
+
 class TallyLedger(TallyElement):
     attrs = {
         'name': ('name', str, True),
@@ -57,7 +67,7 @@ class TallyLedger(TallyElement):
     }
 
     def __repr__(self):
-        return "<TallyLedgerStub {0}>".format(self.name)
+        return "<TallyLedger {0}>".format(self.name)
 
 
 class TallyLedgersList(TallyReport):

@@ -22,7 +22,7 @@
 Docstring for stock
 """
 
-
+from decimal import Decimal
 from lxml import etree
 
 from .utils import parse_date
@@ -42,6 +42,48 @@ class TallyLedgerMaster(TallyElement):
 
     def __repr__(self):
         return "<TallyLedgerMaster {0}>".format(self.name)
+
+
+class TallyLedgerEntry(TallyElement):
+    elements = {
+        'narration': ('narration', str, True),
+        'taxclassificationname': ('taxclassificationname', str, False),
+        'roundtype': ('roundtype', str, False),
+        'ledgername': ('ledgername', str, False),
+        'methodtype': ('methodtype', str, False),
+        'classrate': ('classrate', str, False),
+        'tdspartyname': ('tdspartyname', str, False),
+        'voucherfbtcategory': ('voucherfbtcategory', str, False),
+        'typeoftaxpayment': ('typeoftaxpayment', str, False),
+        'gstclass': ('gstclass', str, False),
+        'stnotificationno': ('stnotificationno', str, False),
+        'isdeemedpositive': ('isdeemedpositive', yesorno, True),
+        'ledgerfromitem': ('ledgerfromitem', yesorno, True),
+        'removezeroentries': ('removezeroentries', yesorno, True),
+        'ispartyledger': ('ispartyledger', yesorno, True),
+        'stcradjpercent': ('stcradjpercent', Decimal, True),
+        'roundlimit': ('roundlimit', Decimal, True),
+        'rateofaddlvat': ('rateofaddlvat', Decimal, True),
+        'rateofcessonvat': ('rateofcessonvat', Decimal, True),
+        'previnvtotalnum': ('previnvtotalnum', Decimal, True),
+        'amount': ('amount', Decimal, True),
+        'fbtexemptamount': ('fbtexemptamount', str, False),
+        'vatassessablevalue': ('vatassessablevalue', str, False),
+        'prevamount': ('prevamount', str, False),
+        'previnvtotalamt': ('previnvtotalamt', str, False),
+    }
+
+    @property
+    def ledger(self):
+        return get_list(self.company_name).ledgers[self.ledgername]
+
+    def __repr__(self):
+        return "<TallyLedgerEntry {1} {0}>".format(self.ledgername, self.amount)
+
+
+class TallyAccountingAllocation(TallyLedgerEntry):
+    def __repr__(self):
+        return "<TallyAccountingAllocation {1} {0}>".format(self.ledgername, self.amount)
 
 
 class TallyLedger(TallyElement):
@@ -65,6 +107,10 @@ class TallyLedger(TallyElement):
         'closingdronacctvalue': ('closingdronacctvalue', yesorno, False),
         'ledopeningbalance': ('ledopeningbalance', str, False),
     }
+
+    @property
+    def master(self):
+        return self.company_masters.ledgers[self.name]
 
     def __repr__(self):
         return "<TallyLedger {0}>".format(self.name)

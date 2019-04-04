@@ -126,3 +126,8 @@ def yesorno(s):
 def parse_date(tally_date):
     date_st = "{0}-{1}-{2}".format(tally_date[0:4], tally_date[4:6], tally_date[6:8])
     return arrow.get(date_st)
+
+
+def parse_datetime(tally_datetime):
+    return arrow.get(' '.join([x.strip() for x in tally_datetime.split('at')]),
+                     'D-MMM-YYYY HH:mm')

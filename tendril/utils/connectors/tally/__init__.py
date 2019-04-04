@@ -22,7 +22,9 @@
 Docstring for __init__.py
 """
 
+import inspect
 import requests
+from decimal import Decimal
 from copy import copy
 from six import iteritems
 from lxml import etree
@@ -31,6 +33,7 @@ from collections import namedtuple
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 from requests.structures import CaseInsensitiveDict
+from decimal import InvalidOperation
 from .utils import get_date_range
 from .cache import cachefs
 
@@ -65,8 +68,10 @@ class TallyElement(TallyObject):
         self._populate()
 
     elements = {}
+    descendent_elements = {}
     attrs = {}
     lists = {}
+    multilines = {}
 
     @property
     def company_name(self):
@@ -80,6 +85,32 @@ class TallyElement(TallyObject):
     def _process_elements(self):
         for k, v in iteritems(self.elements):
             try:
+                candidates = self._soup.findChildren(v[0], recursive=False)
+                if v[1] == str:
+                    val = ':'.join([v[1](c.text) for c in candidates])
+                else:
+                    if len(candidates) == 0:
+                        pass
+                    if len(candidates) > 1:
+                        raise NameError(k, v, candidates)
+                    if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
+                        val = v[1](candidates[0].text, self._ctx)
+                    elif v[1] == Decimal and not candidates[0].text.strip():
+                        val = Decimal("0")
+                    else:
+                        val = v[1](candidates[0].text)
+            except (TypeError, AttributeError, IndexError, NameError, InvalidOperation):
+                if not v[2]:
+                    val = None
+                else:
+                    raise
+            except ValueError:
+                raise
+            setattr(self, k, val)
+
+    def _process_descendent_elements(self):
+        for k, v in iteritems(self.descendent_elements):
+            try:
                 candidates = self._soup.findChildren(v[0])
                 if v[1] == str:
                     val = ':'.join([v[1](c.text) for c in candidates])
@@ -87,9 +118,12 @@ class TallyElement(TallyObject):
                     if len(candidates) == 0:
                         pass
                     if len(candidates) > 1:
-                        raise Exception(k, v, candidates)
-                    val = v[1](candidates[0].text)
-            except (TypeError, AttributeError, IndexError):
+                        raise NameError(k, v, candidates)
+                    if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
+                        val = v[1](candidates[0].text, self._ctx)
+                    else:
+                        val = v[1](candidates[0].text)
+            except (TypeError, AttributeError, IndexError, NameError, InvalidOperation):
                 if not v[2]:
                     val = None
                 else:
@@ -112,13 +146,44 @@ class TallyElement(TallyObject):
     def _process_lists(self):
         for k, v in iteritems(self.lists):
             candidates = self._soup.findChildren(v[0] + '.list')
-            val = [v[1](c) for c in candidates]
+            if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
+                val = [v[1](c, self._ctx) for c in candidates]
+            else:
+                val = [v[1](c) for c in candidates]
+            setattr(self, k, val)
+
+    def _process_multilines(self):
+        for k, v in iteritems(self.multilines):
+            try:
+                candidates = self._soup.findChildren(v[0] + '.list')
+                if len(candidates) == 0:
+                    val = ''
+                elif len(candidates) > 1:
+                    raise Exception(k, v, candidates)
+                else:
+                    lines = [v[1](l.text.strip())
+                             for l in candidates[0].findChildren(v[0])]
+                    if len(lines) == 1:
+                        val = lines[0]
+                    elif len(lines) == 0:
+                        val = ''
+                    else:
+                        val = '\n'.join(lines)
+            except (TypeError, AttributeError, IndexError):
+                if not v[2]:
+                    val = None
+                else:
+                    raise
+            except ValueError:
+                raise
             setattr(self, k, val)
 
     def _populate(self):
-        self._process_elements()
         self._process_attrs()
+        self._process_elements()
         self._process_lists()
+        self._process_multilines()
+        self._process_descendent_elements()
 
 
 class TallyReport(object):

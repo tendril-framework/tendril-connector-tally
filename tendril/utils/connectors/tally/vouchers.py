@@ -22,15 +22,23 @@ from lxml import etree
 from six import iteritems
 
 from .utils import yesorno
+from .utils import parse_date
+from .utils import parse_datetime
 
 from . import TallyElement
 from . import TallyReport
 from . import TallyRequestHeader
 
+import ledgers
+import stock
+
 
 class TallyVoucherType(TallyElement):
-    elements = {
+    # NOTE Might not be the same in all masters as in the earlier inventory masters
+    descendent_elements = {
         'name': ('name', str, True),
+    }
+    elements = {
         '_parent': ('parent', str, True),
         'mailingname': ('mailingname', str, True),
         'numberingmethod': ('numberingmethod', str, True),
@@ -63,6 +71,18 @@ class TallyVoucherType(TallyElement):
         return "<TallyVoucherType {0}>".format(self.name)
 
 
+class TallyInvoiceOrder(TallyElement):
+    elements = {
+        'basicorderdate': ('basicorderdate', parse_date, True),
+        'basicpurchaseorderno': ('basicpurchaseorderno', str, True),
+    }
+
+    def __repr__(self):
+        return "<TallyInvoiceOrder {0} {1}>" \
+               "".format(self.basicpurchaseorderno,
+                         self.basicorderdate.format('DD-MM-YY'))
+
+
 class TallyVoucher(TallyElement):
     attrs = {
         '_vchtype': ('vchtype', str, True),
@@ -70,11 +90,118 @@ class TallyVoucher(TallyElement):
     }
 
     elements = {
-
+        'activeto': ('activeto', str, False),
+        'alteredon': ('alteredon', str, False),
+        'date': ('date', parse_date, True),
+        'taxchallandate': ('taxchallandate', str, False),
+        'reconcilationdate': ('reconcilationdate', str, False),
+        'taxchequedate': ('taxchequedate', str, False),
+        'form16issuedate': ('form16issuedate', str, False),
+        'cstformissuedate': ('cstformissuedate', str, False),
+        'cstformrecvdate': ('cstformrecvdate', str, False),
+        'fbtfromdate': ('fbtfromdate', str, False),
+        'fbttodate': ('fbttodate', str, False),
+        'auditedon': ('auditedon', str, False),
+        'guid': ('guid', str, True),
+        'pricelevel': ('pricelevel', str, False),
+        'autocostlevel': ('autocostlevel', str, False),
+        'narration': ('narration', str, True),
+        'alteredby': ('alteredby', str, False),
+        'natureofsales': ('natureofsales', str, False),
+        'excisenotificationno': ('excisenotificationno', str, False),
+        'exciseunitname': ('exciseunitname', str, False),
+        'classname': ('classname', str, False),
+        'poscardledger': ('poscardledger', str, False),
+        'poscashledger': ('poscashledger', str, False),
+        'posgiftledger': ('posgiftledger', str, False),
+        'poschequeledger': ('poschequeledger', str, False),
+        'taxbankchallannumber': ('taxbankchallannumber', str, False),
+        'taxchallanbsrcode': ('taxchallanbsrcode', str, False),
+        'taxchequenumber': ('taxchequenumber', str, False),
+        'taxbankname': ('taxchequenumber', str, False),
+        'vouchertypename': ('vouchertypename', str, False),
+        'vouchernumber': ('vouchernumber', str, False),
+        'reference': ('reference', str, False),
+        'partyledgername': ('partyledgername', str, True),
+        'partyname': ('partyname', str, True),
+        'basicpartyname': ('basicpartyname', str, True),
+        'basicvoucherchequename': ('basicvoucherchequename', str, False),
+        'basicvouchercrosscomment': ('basicvouchercrosscomment', str, False),
+        'exchcurrencyname': ('exchcurrencyname', str, False),
+        'serialmaster': ('serialmaster', str, False),
+        'serialnumber': ('serialnumber', str, False),
+        'statadjustmenttype': ('statadjustmenttype', str, False),
+        'taxbankbranchname': ('taxbankbranchname', str, False),
+        'cstformissuetype': ('cstformissuetype', str, False),
+        'cstformissuenumber': ('cstformissuenumber', str, False),
+        'cstformrecvtype': ('cstformrecvtype', str, False),
+        'cstformrecvnnumber': ('cstformrecvnnumber', str, False),
+        'excisetreasurynumber': ('excisetreasurynumber', str, False),
+        'excisetreasuryname': ('excisetreasuryname', str, False),
+        'fbtpaymenttype': ('fbtpaymenttype', str, False),
+        'poscardnumber': ('poscardnumber', str, False),
+        'poschequenumber': ('poschequenumber', str, False),
+        'poschequebankname': ('poschequebankname', str, False),
+        'taxadjustment': ('taxadjustment', str, False),
+        'challantype': ('challantype', str, False),
+        'chequedepositorname': ('chequedepositorname', str, False),
+        'basicshippedby': ('basicshippedby', str, False),
+        'basicdestinationcountry': ('basicdestinationcountry', str, False),
+        'basicbuyername': ('basicbuyername', str, False),
+        'basicplaceofreceipt': ('basicplaceofreceipt', str, False),
+        'basicshipdocumentno': ('basicshipdocumentno', str, False),
+        'basicportofloading': ('basicportofloading', str, False),
+        'basicportofdischarge': ('basicportofdischarge', str, False),
+        'basicfinaldestination': ('basicfinaldestination', str, False),
+        'basicorderref': ('basicorderref', str, False),
+        'basicshipvesselno': ('basicshipvesselno', str, False),
+        'basicbuyerssalestaxno': ('basicbuyerssalestaxno', str, False),
+        'basicduedateofpymt': ('basicduedateofpymt', str, False),
+        'basicserialnuminpla': ('basicserialnuminpla', str, False),
+        'basicdatetimeofinvoice': ('basicdatetimeofinvoice', parse_datetime, True),
+        'basicdatetimeofremoval': ('basicdatetimeofinvoice', parse_datetime, True),
+        'vchgstclass': ('vchgstclass', str, False),
+        'costcentrename': ('costcentrename', str, False),
+        'enteredby': ('enteredby', str, False),
+        'requestorrule': ('requestorrule', str, False),
+        'destinationgodown': ('destinationgodown', str, False),
+        'diffactualqty': ('diffactualqty', yesorno, True),
+        'audited': ('audited', yesorno, True),
+        'forjobcosting': ('forjobcosting', yesorno, True),
+        'isoptional': ('isoptional', yesorno, True),
+        'effectivedate': ('effectivedate', parse_date, True),
+        'useforinterest': ('useforinterest', yesorno, True),
+        'useforgainloss': ('useforgainloss', yesorno, True),
+        'useforgodowntransfer': ('useforgodowntransfer', yesorno, True),
+        'useforcompound': ('useforcompound', yesorno, True),
+        'alterid': ('alterid', int, True),
+        'exciseopening': ('exciseopening', yesorno, True),
+        'useforfinalproduction': ('useforfinalproduction', yesorno, True),
+        'iscancelled': ('iscancelled', yesorno, True),
+        'hascashflow': ('hascashflow', yesorno, True),
+        'ispostdated': ('ispostdated', yesorno, True),
+        'usetrackingnumber': ('usetrackingnumber', yesorno, True),
+        'isinvoice': ('isinvoice', yesorno, True),
+        'mfgjournal': ('mfgjournal', yesorno, True),
+        'hasdiscounts': ('hasdiscounts', yesorno, True),
+        'aspayslip': ('aspayslip', yesorno, True),
+        'iscostcentre': ('iscostcentre', yesorno, True),
+        'isdeleted': ('isdeleted', yesorno, True),
+        'asoriginal': ('asoriginal', yesorno, True),
+        'poscashreceived': ('poscashreceived', str, False),
+        'exchgrate': ('exchgrate', str, False),
     }
 
     lists = {
+        'invoiceorderlist': ('invoiceorderlist', TallyInvoiceOrder, True),
+        'ledgerentries': ('ledgerentries', ledgers.TallyLedgerEntry, True),
+        'inventoryentries': ('allinventoryentries', stock.TallyInventoryEntry, True),
+    }
 
+    multilines = {
+        'address': ('address', str, False),
+        'basicbuyeraddress': ('basicbuyeraddress', str, False),
+        'basicorderterms': ('basicorderterms', str, False),
     }
 
     @property

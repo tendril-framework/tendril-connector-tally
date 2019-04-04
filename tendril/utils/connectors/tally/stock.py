@@ -24,6 +24,7 @@ Docstring for stock
 
 from lxml import etree
 from warnings import warn
+from decimal import Decimal
 
 from .utils import yesorno
 
@@ -32,10 +33,15 @@ from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
 
+import ledgers
+
 
 class TallyStockGroup(TallyElement):
-    elements = {
+    # NOTE All masters has more fields?
+    descendent_elements = {
         'name': ('name', str, True),
+    }
+    elements = {
         '_parent': ('parent', str, True),
         'narration': ('narration', str, True),
         'costingmethod': ('costingmethod', str, True),
@@ -86,8 +92,11 @@ class TallyStockGroup(TallyElement):
 
 
 class TallyStockCategory(TallyElement):
-    elements = {
+    # NOTE All masters has more fields?
+    descendent_elements = {
         'name': ('name', str, True),
+    }
+    elements = {
         '_parent': ('parent', str, True),
         'narration': ('narration', str, True),
     }
@@ -102,8 +111,12 @@ class TallyStockCategory(TallyElement):
 
 
 class TallyStockItem(TallyElement):
-    elements = {
+    # NOTE All masters has more fields?
+    descendent_elements = {
         'name': ('name', str, True),
+        '_godownname': ('godownname', str, False),
+    }
+    elements = {
         '_parent': ('parent', str, True),
         'narration': ('narration', str, True),
         '_category': ('category', str, False),
@@ -134,7 +147,6 @@ class TallyStockItem(TallyElement):
         '_openingbalance': ('openingbalance', str, True),
         '_openingvalue': ('openingvalue', str, True),
         '_openingrate': ('openingrate', str, True),
-        '_godownname': ('godownname', str, False),
         'batchname': ('batchname', str, False),
     }
 
@@ -216,8 +228,11 @@ class TallyStockItem(TallyElement):
 
 
 class TallyGodown(TallyElement):
-    elements = {
+    # NOTE All masters has more fields?
+    descendent_elements = {
         'name': ('name', str, True),
+    }
+    elements = {
         '_parent': ('parent', str, True),
         'narration': ('narration', str, True),
         'hasnospace': ('hasnospace', yesorno, False),
@@ -233,6 +248,83 @@ class TallyGodown(TallyElement):
 
     def __repr__(self):
         return "<TallyGodown {0}>".format(self.name)
+
+
+class TallyStockBatchAllocation(TallyElement):
+    pass
+
+
+class TallyVoucherBatchAllocation(TallyElement):
+    elements = {
+        'mfdon': ('mfdon', str, False),
+        'godownname': ('godownname', str, True),
+        'batchname': ('batchname', str, True),
+        'destinationgodownname': ('destinationgodownname', str, True),
+        'indentno': ('indentno', str, False),
+        'orderno': ('orderno', str, False),
+        'trackingnumber': ('trackingnumber', str, False),
+        'addlamount': ('addlamount', str, False),
+        'amount': ('amount', Decimal, True),
+        'actualqty': ('actualqty', str, True),  #
+        'billedqty': ('billedqty', str, True),  #
+        'expiryperiod': ('expiryperiod', str, False),
+        'indentduedate': ('indentduedate', str, False),
+        'orderduedate': ('orderduedate', str, False),
+    }
+
+    @property
+    def godown(self):
+        return self.company_masters.godowns[self.godownname]
+
+    @property
+    def batch(self):
+        raise NotImplementedError
+
+    @property
+    def destinationgodown(self):
+        return self.company_masters.godowns[self.destinationgodownname]
+
+    def __repr__(self):
+        return "<TallyVoucherBatchAllocation {0} {1} {2}>" \
+               "".format(self.amount, self.actualqty, self.godownname)
+
+
+class TallyInventoryEntry(TallyElement):
+    elements = {
+        'isdeemedpositive': ('isdeemedpositive', yesorno, True),
+        'amount': ('amount', Decimal, True),
+        'actualqty': ('actualqty', str, True),  #
+        'billedqty': ('billedqty', str, True),  #
+        'description': ('description', str, False),
+        'stockitemname': ('stockitemname', str, True),
+        'excisetariff': ('excisetariff', str, False),
+        'exciseexemption': ('exciseexemption', str, False),
+        'tradercnsalesnumber': ('tradercnsalesnumber', str, False),
+        'basicpackagemarks': ('basicpackagemarks', str, False),
+        'basicnumpackages': ('basicnumpackages', str, False),
+        'sdtaxclassificationname': ('sdtaxclassificationname', str, False),
+        'addlamount': ('addlamount', str, False),
+        'isautonegate': ('isautonegate', yesorno, True),
+        'rate': ('rate', str, True),  #
+        'discount': ('discount', Decimal, True),  #
+        'mrprate': ('mrprate', str, False),
+    }
+
+    lists = {
+        'accountingallocations': ('accountingallocations', ledgers.TallyAccountingAllocation, True),
+        'batchallocations': ('batchallocations', TallyVoucherBatchAllocation, True)
+    }
+
+    multilines = {
+        'basicuserdescription': ('basicuserdescription', str, True),
+    }
+
+    @property
+    def stockitem(self):
+        return self.company_masters.stockitems[self.stockitemname]
+
+    def __repr__(self):
+        return "<TallyInventoryEntry {0}, {1}@{2}>".format(self.stockitemname, self.billedqty, self.rate)
 
 
 class TallyStockItemPosition(TallyElement):

@@ -49,7 +49,7 @@ def get_master(company_name, force=False):
         _content = {
             'stockitems': ('stockitem', stock.TallyStockItem),
             'stockgroups': ('stockgroup', stock.TallyStockGroup),
-            'stockcategories': ('stockcatogory', stock.TallyStockCategory),
+            'stockcategories': ('stockcategory', stock.TallyStockCategory),
             'godowns': ('godown', stock.TallyGodown),
             'vouchertypes': ('vouchertype', vouchers.TallyVoucherType),
             'units': ('unit', units.TallyUnit),

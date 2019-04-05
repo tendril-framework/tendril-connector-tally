@@ -206,6 +206,8 @@ class TallyVoucher(TallyElement):
         'invoiceorderlist': ('invoiceorderlist', TallyInvoiceOrder, True),
         'ledgerentries': ('ledgerentries', ledgers.TallyLedgerEntry, True),
         'inventoryentries': ('allinventoryentries', stock.TallyInventoryEntry, True),
+        'inventoryentriesin': ('inventoryentriesin', stock.TallyInventoryEntry, True),
+        'inventoryentriesout': ('inventoryentriesout', stock.TallyInventoryEntry, True),
     }
 
     @property

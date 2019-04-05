@@ -68,7 +68,7 @@ class TallyLedgerEntry(TallyElement):
         'rateofaddlvat': ('rateofaddlvat', TXDecimal(), True),
         'rateofcessonvat': ('rateofcessonvat', TXDecimal(), True),
         'previnvtotalnum': ('previnvtotalnum', TXDecimal(), True),
-        'amount': ('amount', TXDecimal(required=True), True),
+        'amount': ('amount', TXString(required=True), True),
         'fbtexemptamount': ('fbtexemptamount', TXString(), False),
         'vatassessablevalue': ('vatassessablevalue', TXString(), False),
         'prevamount': ('prevamount', TXString(), False),

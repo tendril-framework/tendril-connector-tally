@@ -272,7 +272,7 @@ class TallyVoucherBatchAllocation(TallyElement):
         'orderno': ('orderno', TXString(), False),
         'trackingnumber': ('trackingnumber', TXString(), False),
         'addlamount': ('addlamount', TXString(), False),
-        'amount': ('amount', TXDecimal(), True),
+        'amount': ('amount', TXString(), True),
         'actualqty': ('actualqty', TXString(), True),  #
         'billedqty': ('billedqty', TXString(), True),  #
         'expiryperiod': ('expiryperiod', TXString(), False),
@@ -300,7 +300,7 @@ class TallyVoucherBatchAllocation(TallyElement):
 class TallyInventoryEntry(TallyElement):
     elements = {
         'isdeemedpositive': ('isdeemedpositive', TXBoolean(), True),
-        'amount': ('amount', TXDecimal(), True),
+        'amount': ('amount', TXString(), True),
         'actualqty': ('actualqty', TXString(), True),  #
         'billedqty': ('billedqty', TXString(), True),  #
         'description': ('description', TXString(), False),
@@ -314,7 +314,7 @@ class TallyInventoryEntry(TallyElement):
         'addlamount': ('addlamount', TXString(), False),
         'isautonegate': ('isautonegate', TXBoolean(), True),
         'rate': ('rate', TXString(), True),  #
-        'discount': ('discount', TXDecimal(), True),  #
+        'discount': ('discount', TXString(), True),  #
         'mrprate': ('mrprate', TXString(), False),
         'basicuserdescription': ('basicuserdescription.list', TXMultilineString(), False),
     }

@@ -20,15 +20,17 @@
 
 
 from . import TallyElement
-from .utils import yesorno
-from .utils import parse_date
+from .utils.converters import TXBoolean
+from .utils.converters import TXDate
+from .utils.converters import TXString
+from .utils.converters import TXInteger
 
 
 class TallyCurrencyDailyRate(TallyElement):
     elements = {
-        'date': ('date', parse_date, True),
-        'specifiedrate': ('specifiedrate', str, True),
-        'transactedrate': ('transactedrate', str, False),
+        'date': ('date', TXDate(required=True), True),
+        'specifiedrate': ('specifiedrate', TXString(), True),
+        'transactedrate': ('transactedrate', TXString(), False),
     }
 
     def __repr__(self):
@@ -51,24 +53,24 @@ class TallyCurrencyDailySellingRate(TallyCurrencyDailyRate):
 
 class TallyCurrency(TallyElement):
     attrs = {
-        'name': ('name', str, True),
-        'reservedname': ('reservedname', str, True),
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), True),
     }
 
     elements = {
-        'activefrom': ('activefrom', str, False),
-        'activeto': ('activeto', str, False),
-        'narration': ('narration', str, False),
-        'mailingname': ('mailingname', str, False),
-        'expandedsymbol': ('expandedsymbol', str, False),
-        'decimalsymbol': ('decimalsymbol', str, False),
-        'originalsymbol': ('originalsymbol', str, False),
-        'issuffix': ('issuffix', yesorno, False),
-        'hasspace': ('hasspace', yesorno, False),
-        'inmillions': ('inmillions', yesorno, False),
-        'sortposition': ('sortposition', int, False),
-        'decimalplaces': ('decimalplaces', int, False),
-        'decimalplacesforprinting': ('decimalplacesforprinting', int, False),
+        'activefrom': ('activefrom', TXString(), False),
+        'activeto': ('activeto', TXString(), False),
+        'narration': ('narration', TXString(), False),
+        'mailingname': ('mailingname', TXString(), False),
+        'expandedsymbol': ('expandedsymbol', TXString(), False),
+        'decimalsymbol': ('decimalsymbol', TXString(), False),
+        'originalsymbol': ('originalsymbol', TXString(), False),
+        'issuffix': ('issuffix', TXBoolean(), False),
+        'hasspace': ('hasspace', TXBoolean(), False),
+        'inmillions': ('inmillions', TXBoolean(), False),
+        'sortposition': ('sortposition', TXInteger(), False),
+        'decimalplaces': ('decimalplaces', TXInteger(), False),
+        'decimalplacesforprinting': ('decimalplacesforprinting', TXInteger(), False),
     }
 
     lists = {

@@ -22,11 +22,13 @@
 Docstring for stock
 """
 
-from decimal import Decimal
 from lxml import etree
 
-from .utils import parse_date
-from .utils import yesorno
+from .utils.converters import TXBoolean
+from .utils.converters import TXDate
+from .utils.converters import TXString
+from .utils.converters import TXDecimal
+from .utils.converters import TXMultilineString
 
 from . import TallyReport
 from . import TallyRequestHeader
@@ -36,8 +38,8 @@ from . import TallyElement
 
 class TallyLedgerMaster(TallyElement):
     attrs = {
-        'name': ('name', str, True),
-        'reservedname': ('reservedname', str, False),
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
     }
 
     def __repr__(self):
@@ -46,31 +48,31 @@ class TallyLedgerMaster(TallyElement):
 
 class TallyLedgerEntry(TallyElement):
     elements = {
-        'narration': ('narration', str, True),
-        'taxclassificationname': ('taxclassificationname', str, False),
-        'roundtype': ('roundtype', str, False),
-        'ledgername': ('ledgername', str, False),
-        'methodtype': ('methodtype', str, False),
-        'classrate': ('classrate', str, False),
-        'tdspartyname': ('tdspartyname', str, False),
-        'voucherfbtcategory': ('voucherfbtcategory', str, False),
-        'typeoftaxpayment': ('typeoftaxpayment', str, False),
-        'gstclass': ('gstclass', str, False),
-        'stnotificationno': ('stnotificationno', str, False),
-        'isdeemedpositive': ('isdeemedpositive', yesorno, True),
-        'ledgerfromitem': ('ledgerfromitem', yesorno, True),
-        'removezeroentries': ('removezeroentries', yesorno, True),
-        'ispartyledger': ('ispartyledger', yesorno, True),
-        'stcradjpercent': ('stcradjpercent', Decimal, True),
-        'roundlimit': ('roundlimit', Decimal, True),
-        'rateofaddlvat': ('rateofaddlvat', Decimal, True),
-        'rateofcessonvat': ('rateofcessonvat', Decimal, True),
-        'previnvtotalnum': ('previnvtotalnum', Decimal, True),
-        'amount': ('amount', Decimal, True),
-        'fbtexemptamount': ('fbtexemptamount', str, False),
-        'vatassessablevalue': ('vatassessablevalue', str, False),
-        'prevamount': ('prevamount', str, False),
-        'previnvtotalamt': ('previnvtotalamt', str, False),
+        'narration': ('narration', TXString(), True),
+        'taxclassificationname': ('taxclassificationname', TXString(), False),
+        'roundtype': ('roundtype', TXString(), False),
+        'ledgername': ('ledgername', TXString(required=True), False),
+        'methodtype': ('methodtype', TXString(), False),
+        'classrate': ('classrate', TXString(), False),
+        'tdspartyname': ('tdspartyname', TXString(), False),
+        'voucherfbtcategory': ('voucherfbtcategory', TXString(), False),
+        'typeoftaxpayment': ('typeoftaxpayment', TXString(), False),
+        'gstclass': ('gstclass', TXString(), False),
+        'stnotificationno': ('stnotificationno', TXString(), False),
+        'isdeemedpositive': ('isdeemedpositive', TXBoolean(), True),
+        'ledgerfromitem': ('ledgerfromitem', TXBoolean(), True),
+        'removezeroentries': ('removezeroentries', TXBoolean(), True),
+        'ispartyledger': ('ispartyledger', TXBoolean(), True),
+        'stcradjpercent': ('stcradjpercent', TXDecimal(), True),
+        'roundlimit': ('roundlimit', TXDecimal(), True),
+        'rateofaddlvat': ('rateofaddlvat', TXDecimal(), True),
+        'rateofcessonvat': ('rateofcessonvat', TXDecimal(), True),
+        'previnvtotalnum': ('previnvtotalnum', TXDecimal(), True),
+        'amount': ('amount', TXDecimal(required=True), True),
+        'fbtexemptamount': ('fbtexemptamount', TXString(), False),
+        'vatassessablevalue': ('vatassessablevalue', TXString(), False),
+        'prevamount': ('prevamount', TXString(), False),
+        'previnvtotalamt': ('previnvtotalamt', TXString(), False),
     }
 
     @property
@@ -88,24 +90,26 @@ class TallyAccountingAllocation(TallyLedgerEntry):
 
 class TallyLedger(TallyElement):
     attrs = {
-        'name': ('name', str, True),
-        'reservedname': ('reservedname', str, False),
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
     }
-
+    descendent_elements = {
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
+    }
     elements = {
-        'lastvoucherdate': ('lastvoucherdate', parse_date, False),
-        'parent': ('parent', str, False),
-        'tax': ('tax', str, False),
-        'servicecategory': ('servicecategory', str, False),
-        'ledgerfbtcategory': ('ledgerfbtcategory', str, False),
-        'isfbtapplicable': ('isfbtapplicable', yesorno, False),
-        'closingbalance': ('closingbalance', str, False),
-        'onaccountvalue': ('onaccountvalue', str, False),
-        'tbalopening': ('tbalopening', str, False),
-        'isfbtdutiesledger': ('isfbtdutiesledger', yesorno, False),
-        'closingonacctvalue':  ('closingonacctvalue', str, False),
-        'closingdronacctvalue': ('closingdronacctvalue', yesorno, False),
-        'ledopeningbalance': ('ledopeningbalance', str, False),
+        'lastvoucherdate': ('lastvoucherdate', TXDate(), False),
+        'parent': ('parent', TXString(), False),
+        'tax': ('tax', TXString(), False),
+        'servicecategory': ('servicecategory', TXString(), False),
+        'ledgerfbtcategory': ('ledgerfbtcategory', TXString(), False),
+        'isfbtapplicable': ('isfbtapplicable', TXBoolean(), False),
+        'closingbalance': ('closingbalance', TXString(), False),
+        'onaccountvalue': ('onaccountvalue', TXString(), False),
+        'tbalopening': ('tbalopening', TXString(), True),
+        'isfbtdutiesledger': ('isfbtdutiesledger', TXBoolean(), False),
+        'closingonacctvalue':  ('closingonacctvalue', TXString(), False),
+        'closingdronacctvalue': ('closingdronacctvalue', TXBoolean(), False),
+        'ledopeningbalance': ('ledopeningbalance', TXString(), False),
     }
 
     @property

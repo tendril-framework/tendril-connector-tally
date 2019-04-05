@@ -22,20 +22,24 @@
 Docstring for __init__.py
 """
 
-import inspect
-import requests
-from decimal import Decimal
+
 from copy import copy
-from six import iteritems
-from lxml import etree
 from six import StringIO
+from six import iteritems
+from six import string_types
+from inspect import isclass
 from collections import namedtuple
+
+from lxml import etree
 from bs4 import BeautifulSoup
+
+from requests import post
 from requests.exceptions import ConnectionError
 from requests.structures import CaseInsensitiveDict
-from decimal import InvalidOperation
-from .utils import get_date_range
-from .cache import cachefs
+
+from .utils.dates import get_date_range
+from .utils.converters import TallyPropertyConverter
+from .utils.cache import cachefs
 
 try:
     from tendril.config import TALLY_HOST
@@ -50,6 +54,25 @@ TallyQueryParameters = namedtuple('TallyQueryParameters',
 
 TallyRequestHeader = namedtuple('TallyRequestHeader',
                                 'version tallyrequest type id')
+
+TallyConversionSpec = namedtuple('TallyConversionSpec',
+                                 'tag tx hardfail')
+
+
+class TallyConversionError(Exception):
+    pass
+
+
+class TallyTagNotFound(TallyConversionError):
+    pass
+
+
+class TallyTagAmbiguous(TallyConversionError):
+    pass
+
+
+class TallyConverterNotSupported(TallyConversionError):
+    pass
 
 
 class TallyNotAvailable(ConnectionError):
@@ -71,7 +94,6 @@ class TallyElement(TallyObject):
     descendent_elements = {}
     attrs = {}
     lists = {}
-    multilines = {}
 
     @property
     def company_name(self):
@@ -82,107 +104,72 @@ class TallyElement(TallyObject):
         import masters
         return masters.get_master(self.company_name)
 
-    def _process_elements(self):
-        for k, v in iteritems(self.elements):
-            try:
-                candidates = self._soup.findChildren(v[0], recursive=False)
-                if v[1] == str:
-                    val = ':'.join([v[1](c.text) for c in candidates])
-                else:
-                    if len(candidates) == 0:
-                        pass
-                    if len(candidates) > 1:
-                        raise NameError(k, v, candidates)
-                    if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
-                        val = v[1](candidates[0].text, self._ctx)
-                    elif v[1] == Decimal and not candidates[0].text.strip():
-                        val = Decimal("0")
-                    else:
-                        val = v[1](candidates[0].text)
-            except (TypeError, AttributeError, IndexError, NameError, InvalidOperation):
-                if not v[2]:
-                    val = None
-                else:
-                    raise
-            except ValueError:
+    def _convert_from_tally(self, spec, candidates):
+        try:
+            if len(candidates) == 0:
+                raise TallyTagNotFound(spec, self.name)
+            if len(candidates) > 1:
+                raise TallyTagAmbiguous(spec, candidates)
+
+            elif isinstance(candidates[0], string_types):
+                candidate_text = candidates[0]
+            elif isclass(spec.tx) and issubclass(spec.tx, TallyElement):
+                candidate_text = candidates[0]
+            elif isinstance(spec.tx, TallyPropertyConverter):
+                candidate_text = candidates[0].text
+            else:
+                raise TallyConverterNotSupported(spec, candidates)
+            if isinstance(spec.tx, TallyPropertyConverter):
+                return spec.tx.from_tallyxml(candidate_text)
+            elif isclass and issubclass(spec.tx, TallyElement):
+                return spec.tx(candidate_text, self._ctx)
+            else:
+                raise TallyConverterNotSupported(spec, candidates)
+        except TallyConversionError:
+            if spec.hardfail:
                 raise
+            else:
+                return None
+
+    def _process_elements(self, elements=None, recursive=False):
+        if elements is None:
+            elements = self.elements
+        for k, v in iteritems(elements):
+            spec = TallyConversionSpec(*v)
+            try:
+                candidates = self._soup.findChildren(v[0], recursive=recursive)
+            except AttributeError as e:
+                raise TallyTagNotFound(spec, e)
+            val = self._convert_from_tally(spec, candidates)
             setattr(self, k, val)
 
     def _process_descendent_elements(self):
-        for k, v in iteritems(self.descendent_elements):
-            try:
-                candidates = self._soup.findChildren(v[0])
-                if v[1] == str:
-                    val = ':'.join([v[1](c.text) for c in candidates])
-                else:
-                    if len(candidates) == 0:
-                        pass
-                    if len(candidates) > 1:
-                        raise NameError(k, v, candidates)
-                    if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
-                        val = v[1](candidates[0].text, self._ctx)
-                    else:
-                        val = v[1](candidates[0].text)
-            except (TypeError, AttributeError, IndexError, NameError, InvalidOperation):
-                if not v[2]:
-                    val = None
-                else:
-                    raise
-            except ValueError:
-                raise
-            setattr(self, k, val)
+        self._process_elements(self.descendent_elements, recursive=True)
 
     def _process_attrs(self):
         for k, v in iteritems(self.attrs):
+            spec = TallyConversionSpec(*v)
             try:
-                val = v[1](self._soup.attrs[v[0]])
-            except:
-                if not v[2]:
-                    val = None
-                else:
-                    raise
+                candidate = self._soup.attrs[spec.tag]
+            except KeyError as e:
+                raise TallyTagNotFound(spec, e)
+            val = self._convert_from_tally(spec, [candidate])
             setattr(self, k, val)
 
     def _process_lists(self):
         for k, v in iteritems(self.lists):
-            candidates = self._soup.findChildren(v[0] + '.list')
-            if inspect.isclass(v[1]) and issubclass(v[1], TallyElement):
-                val = [v[1](c, self._ctx) for c in candidates]
-            else:
-                val = [v[1](c) for c in candidates]
-            setattr(self, k, val)
-
-    def _process_multilines(self):
-        for k, v in iteritems(self.multilines):
+            spec = TallyConversionSpec(*v)
             try:
-                candidates = self._soup.findChildren(v[0] + '.list')
-                if len(candidates) == 0:
-                    val = ''
-                elif len(candidates) > 1:
-                    raise Exception(k, v, candidates)
-                else:
-                    lines = [v[1](l.text.strip())
-                             for l in candidates[0].findChildren(v[0])]
-                    if len(lines) == 1:
-                        val = lines[0]
-                    elif len(lines) == 0:
-                        val = ''
-                    else:
-                        val = '\n'.join(lines)
-            except (TypeError, AttributeError, IndexError):
-                if not v[2]:
-                    val = None
-                else:
-                    raise
-            except ValueError:
-                raise
+                candidates = self._soup.findChildren(v[0] + '.list', recursive=False)
+            except AttributeError as e:
+                raise TallyTagNotFound(spec, e)
+            val = [self._convert_from_tally(spec, [c]) for c in candidates]
             setattr(self, k, val)
 
     def _populate(self):
         self._process_attrs()
         self._process_elements()
         self._process_lists()
-        self._process_multilines()
         self._process_descendent_elements()
 
 
@@ -313,7 +300,7 @@ class TallyXMLEngine(object):
         self.query.write(xmlstring)
         try:
             print("Sending Tally request to {0}".format(uri))
-            r = requests.post(uri, data=xmlstring.getvalue(), headers=headers)
+            r = post(uri, data=xmlstring.getvalue(), headers=headers)
         except ConnectionError as e:
             print("Got Exception")
             print(e)

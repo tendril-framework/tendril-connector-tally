@@ -20,17 +20,20 @@
 
 
 from . import TallyElement
-from .utils import yesorno
+from .utils.converters import TXBoolean
+from .utils.converters import TXString
+from .utils.converters import TXInteger
+from .utils.converters import TXDecimal
 
 
 class TallyUnit(TallyElement):
     elements = {
-        'name': ('name', str, True),
-        'originalname': ('originalname', str, False),
-        'decimalplaces': ('decimalplaces', int, True),
-        'issimpleunit': ('issimpleunit', yesorno, True),
-        'additionalunits': ('additionalunits', str, False),
-        'conversion': ('conversion', float, False)
+        'name': ('name', TXString(required=True), True),
+        'originalname': ('originalname', TXString(required=True), False),
+        'decimalplaces': ('decimalplaces', TXInteger(), True),
+        'issimpleunit': ('issimpleunit', TXBoolean(), True),
+        'additionalunits': ('additionalunits', TXString(), False),
+        'conversion': ('conversion', TXDecimal(), False)
     }
 
     def __repr__(self):

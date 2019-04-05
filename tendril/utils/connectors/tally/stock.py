@@ -24,9 +24,11 @@ Docstring for stock
 
 from lxml import etree
 from warnings import warn
-from decimal import Decimal
 
-from .utils import yesorno
+from .utils.converters import TXBoolean
+from .utils.converters import TXString
+from .utils.converters import TXDecimal
+from .utils.converters import TXMultilineString
 
 from . import TallyReport
 from . import TallyRequestHeader
@@ -38,28 +40,32 @@ import ledgers
 
 class TallyStockGroup(TallyElement):
     # NOTE All masters has more fields?
+    attrs = {
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
+    }
     descendent_elements = {
-        'name': ('name', str, True),
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
     }
     elements = {
-        '_parent': ('parent', str, True),
-        'narration': ('narration', str, True),
-        'costingmethod': ('costingmethod', str, True),
-        'valuationmethod': ('valuationmethod', str, True),
-        '_baseunits': ('baseunits', str, True),
-        '_additionalunits': ('additionalunits', str, True),
-        'isbatchwiseon': ('isbatchwiseon', yesorno, True),
-        'isperishableon': ('isperishableon', yesorno, True),
-        'isaddable': ('isaddable', yesorno, True),
-        'ignorephysicaldifference': ('ignorephysicaldifference', yesorno, True),
-        'ignorenegativestock': ('ignorenegativestock', yesorno, True),
-        'treatsalesasmanufactured': ('treatsalesasmanufactured', yesorno, True),
-        'treatpurchasesasconsumed': ('treatpurchasesasconsumed', yesorno, True),
-        'treatrejectsasscrap': ('treatrejectsasscrap', yesorno, True),
-        'hasmfgdate': ('hasmfgdate', yesorno, True),
-        'allowuseofexpireditems': ('allowuseofexpireditems', yesorno, True),
-        'ignorebatches': ('ignorebatches', yesorno, True),
-        'ignoregodowns': ('ignoregodowns', yesorno, True),
+        '_parent': ('parent', TXString(), True),
+        'narration': ('narration', TXString(), True),
+        'costingmethod': ('costingmethod', TXString(), True),
+        'valuationmethod': ('valuationmethod', TXString(), True),
+        '_baseunits': ('baseunits', TXString(), True),
+        '_additionalunits': ('additionalunits', TXString(), True),
+        'isbatchwiseon': ('isbatchwiseon', TXBoolean(), True),
+        'isperishableon': ('isperishableon', TXBoolean(), True),
+        'isaddable': ('isaddable', TXBoolean(), True),
+        'ignorephysicaldifference': ('ignorephysicaldifference', TXBoolean(), True),
+        'ignorenegativestock': ('ignorenegativestock', TXBoolean(), True),
+        'treatsalesasmanufactured': ('treatsalesasmanufactured', TXBoolean(), True),
+        'treatpurchasesasconsumed': ('treatpurchasesasconsumed', TXBoolean(), True),
+        'treatrejectsasscrap': ('treatrejectsasscrap', TXBoolean(), True),
+        'hasmfgdate': ('hasmfgdate', TXBoolean(), True),
+        'allowuseofexpireditems': ('allowuseofexpireditems', TXBoolean(), True),
+        'ignorebatches': ('ignorebatches', TXBoolean(), True),
+        'ignoregodowns': ('ignoregodowns', TXBoolean(), True),
     }
 
     @property
@@ -77,10 +83,7 @@ class TallyStockGroup(TallyElement):
     @property
     def baseunits(self):
         if self._baseunits:
-            try:
-                return self.company_masters.units[self._baseunits]
-            except KeyError:
-                return None
+            return self.company_masters.units[self._baseunits]
 
     @property
     def additionalunits(self):
@@ -94,11 +97,11 @@ class TallyStockGroup(TallyElement):
 class TallyStockCategory(TallyElement):
     # NOTE All masters has more fields?
     descendent_elements = {
-        'name': ('name', str, True),
+        'name': ('name', TXString(required=True), True),
     }
     elements = {
-        '_parent': ('parent', str, True),
-        'narration': ('narration', str, True),
+        '_parent': ('parent', TXString(), True),
+        'narration': ('narration', TXString(), True),
     }
 
     @property
@@ -112,42 +115,46 @@ class TallyStockCategory(TallyElement):
 
 class TallyStockItem(TallyElement):
     # NOTE All masters has more fields?
+    attrs = {
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
+    }
     descendent_elements = {
-        'name': ('name', str, True),
-        '_godownname': ('godownname', str, False),
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
+        '_godownname': ('godownname', TXString(), False),
     }
     elements = {
-        '_parent': ('parent', str, True),
-        'narration': ('narration', str, True),
-        '_category': ('category', str, False),
-        'taxclassificationname': ('taxclassificationname', str, False),
-        'ledgername': ('ledgername', str, False),
-        '_costingmethod': ('costingmethod', str, True),
-        '_valuationmethod': ('valuationmethod', str, True),
-        '_baseunits': ('baseunits', str, True),
-        '_additionalunits': ('additionalunits', str, True),
-        'description': ('description', str, True),
-        'natureofitem': ('natureofitem', str, True),
-        'isbatchwiseon': ('isbatchwiseon', yesorno, True),  # TODO Inherit
-        'isperishableon': ('isperishableon', yesorno, True),  # TODO Inherit
-        'iscostcentreson': ('iscostcentreson', yesorno, False),
-        'isentrytaxapplicable': ('isentrytaxapplicable', yesorno, False),
-        'iscosttrackingon': ('iscosttrackingon', yesorno, False),
-        'ignorephysicaldifference': ('ignorephysicaldifference', yesorno, True),  # TODO Inherit
-        'ignorenegativestock': ('ignorenegativestock', yesorno, True),  # TODO Inherit
-        'treatsalesasmanufactured': ('treatsalesasmanufactured', yesorno, True),  # TODO Inherit
-        'treatpurchasesasconsumed': ('treatpurchasesasconsumed', yesorno, True),  # TODO Inherit
-        'treatrejectsasscrap': ('treatrejectsasscrap', yesorno, True),  # TODO Inherit
-        'hasmfgdate': ('hasmfgdate', yesorno, True),  # TODO Inherit
-        'allowuseofexpireditems': ('allowuseofexpireditems', yesorno, True),  # TODO Inherit
-        'ignorebatches': ('ignorebatches', yesorno, True),  # TODO Inherit
-        'ignoregodowns': ('ignoregodowns', yesorno, True),  # TODO Inherit
-        'calconmrp': ('calconmrp', yesorno, False),  # TODO Inherit
-        'excludejrnlforvaluation': ('excludejrnlforvaluation', yesorno, True),  # TODO Inherit
-        '_openingbalance': ('openingbalance', str, True),
-        '_openingvalue': ('openingvalue', str, True),
-        '_openingrate': ('openingrate', str, True),
-        'batchname': ('batchname', str, False),
+        '_parent': ('parent', TXString(), True),
+        'narration': ('narration', TXString(), True),
+        '_category': ('category', TXString(), False),
+        'taxclassificationname': ('taxclassificationname', TXString(), False),
+        'ledgername': ('ledgername', TXString(), False),
+        '_costingmethod': ('costingmethod', TXString(), True),
+        '_valuationmethod': ('valuationmethod', TXString(), True),
+        '_baseunits': ('baseunits', TXString(), True),
+        '_additionalunits': ('additionalunits', TXString(), True),
+        'description': ('description', TXString(), True),
+        'natureofitem': ('natureofitem', TXString(), False),
+        'isbatchwiseon': ('isbatchwiseon', TXBoolean(), True),
+        'isperishableon': ('isperishableon', TXBoolean(), True),
+        'iscostcentreson': ('iscostcentreson', TXBoolean(), False),
+        'isentrytaxapplicable': ('isentrytaxapplicable', TXBoolean(), False),
+        'iscosttrackingon': ('iscosttrackingon', TXBoolean(), False),
+        'ignorephysicaldifference': ('ignorephysicaldifference', TXBoolean(), True),
+        'ignorenegativestock': ('ignorenegativestock', TXBoolean(), True),
+        'treatsalesasmanufactured': ('treatsalesasmanufactured', TXBoolean(), True),
+        'treatpurchasesasconsumed': ('treatpurchasesasconsumed', TXBoolean(), True),
+        'treatrejectsasscrap': ('treatrejectsasscrap', TXBoolean(), True),
+        'hasmfgdate': ('hasmfgdate', TXBoolean(), True),
+        'allowuseofexpireditems': ('allowuseofexpireditems', TXBoolean(), True),
+        'ignorebatches': ('ignorebatches', TXBoolean(), True),
+        'ignoregodowns': ('ignoregodowns', TXBoolean(), True),
+        'calconmrp': ('calconmrp', TXBoolean(), False),
+        'excludejrnlforvaluation': ('excludejrnlforvaluation', TXBoolean(), True),
+        '_openingbalance': ('openingbalance', TXString(), True),
+        '_openingvalue': ('openingvalue', TXString(), True),
+        '_openingrate': ('openingrate', TXString(), True),
+        'batchname': ('batchname', TXString(), False),
     }
 
     @property
@@ -169,10 +176,7 @@ class TallyStockItem(TallyElement):
     @property
     def baseunits(self):
         if self._baseunits:
-            try:
-                return self.company_masters.units[self._baseunits]
-            except KeyError:
-                return None
+            return self.company_masters.units[self._baseunits]
 
     @property
     def additionalunits(self):
@@ -229,16 +233,20 @@ class TallyStockItem(TallyElement):
 
 class TallyGodown(TallyElement):
     # NOTE All masters has more fields?
+    attrs = {
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
+    }
     descendent_elements = {
-        'name': ('name', str, True),
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
     }
     elements = {
-        '_parent': ('parent', str, True),
-        'narration': ('narration', str, True),
-        'hasnospace': ('hasnospace', yesorno, False),
-        'hasnostock': ('hasnostock', yesorno, False),
-        'isexternal': ('isexternal', yesorno, False),
-        'isinternal': ('isinternal', yesorno, False),
+        '_parent': ('parent', TXString(), True),
+        'narration': ('narration', TXString(), True),
+        'hasnospace': ('hasnospace', TXBoolean(), False),
+        'hasnostock': ('hasnostock', TXBoolean(), False),
+        'isexternal': ('isexternal', TXBoolean(), False),
+        'isinternal': ('isinternal', TXBoolean(), False),
     }
 
     @property
@@ -256,20 +264,20 @@ class TallyStockBatchAllocation(TallyElement):
 
 class TallyVoucherBatchAllocation(TallyElement):
     elements = {
-        'mfdon': ('mfdon', str, False),
-        'godownname': ('godownname', str, True),
-        'batchname': ('batchname', str, True),
-        'destinationgodownname': ('destinationgodownname', str, True),
-        'indentno': ('indentno', str, False),
-        'orderno': ('orderno', str, False),
-        'trackingnumber': ('trackingnumber', str, False),
-        'addlamount': ('addlamount', str, False),
-        'amount': ('amount', Decimal, True),
-        'actualqty': ('actualqty', str, True),  #
-        'billedqty': ('billedqty', str, True),  #
-        'expiryperiod': ('expiryperiod', str, False),
-        'indentduedate': ('indentduedate', str, False),
-        'orderduedate': ('orderduedate', str, False),
+        'mfdon': ('mfdon', TXString(), False),
+        'godownname': ('godownname', TXString(), True),
+        'batchname': ('batchname', TXString(), True),
+        'destinationgodownname': ('destinationgodownname', TXString(), True),
+        'indentno': ('indentno', TXString(), False),
+        'orderno': ('orderno', TXString(), False),
+        'trackingnumber': ('trackingnumber', TXString(), False),
+        'addlamount': ('addlamount', TXString(), False),
+        'amount': ('amount', TXDecimal(), True),
+        'actualqty': ('actualqty', TXString(), True),  #
+        'billedqty': ('billedqty', TXString(), True),  #
+        'expiryperiod': ('expiryperiod', TXString(), False),
+        'indentduedate': ('indentduedate', TXString(), False),
+        'orderduedate': ('orderduedate', TXString(), False),
     }
 
     @property
@@ -291,23 +299,24 @@ class TallyVoucherBatchAllocation(TallyElement):
 
 class TallyInventoryEntry(TallyElement):
     elements = {
-        'isdeemedpositive': ('isdeemedpositive', yesorno, True),
-        'amount': ('amount', Decimal, True),
-        'actualqty': ('actualqty', str, True),  #
-        'billedqty': ('billedqty', str, True),  #
-        'description': ('description', str, False),
-        'stockitemname': ('stockitemname', str, True),
-        'excisetariff': ('excisetariff', str, False),
-        'exciseexemption': ('exciseexemption', str, False),
-        'tradercnsalesnumber': ('tradercnsalesnumber', str, False),
-        'basicpackagemarks': ('basicpackagemarks', str, False),
-        'basicnumpackages': ('basicnumpackages', str, False),
-        'sdtaxclassificationname': ('sdtaxclassificationname', str, False),
-        'addlamount': ('addlamount', str, False),
-        'isautonegate': ('isautonegate', yesorno, True),
-        'rate': ('rate', str, True),  #
-        'discount': ('discount', Decimal, True),  #
-        'mrprate': ('mrprate', str, False),
+        'isdeemedpositive': ('isdeemedpositive', TXBoolean(), True),
+        'amount': ('amount', TXDecimal(), True),
+        'actualqty': ('actualqty', TXString(), True),  #
+        'billedqty': ('billedqty', TXString(), True),  #
+        'description': ('description', TXString(), False),
+        'stockitemname': ('stockitemname', TXString(required=True), True),
+        'excisetariff': ('excisetariff', TXString(), False),
+        'exciseexemption': ('exciseexemption', TXString(), False),
+        'tradercnsalesnumber': ('tradercnsalesnumber', TXString(), False),
+        'basicpackagemarks': ('basicpackagemarks', TXString(), False),
+        'basicnumpackages': ('basicnumpackages', TXString(), False),
+        'sdtaxclassificationname': ('sdtaxclassificationname', TXString(), False),
+        'addlamount': ('addlamount', TXString(), False),
+        'isautonegate': ('isautonegate', TXBoolean(), True),
+        'rate': ('rate', TXString(), True),  #
+        'discount': ('discount', TXDecimal(), True),  #
+        'mrprate': ('mrprate', TXString(), False),
+        'basicuserdescription': ('basicuserdescription.list', TXMultilineString(), False),
     }
 
     lists = {
@@ -315,9 +324,9 @@ class TallyInventoryEntry(TallyElement):
         'batchallocations': ('batchallocations', TallyVoucherBatchAllocation, True)
     }
 
-    multilines = {
-        'basicuserdescription': ('basicuserdescription', str, True),
-    }
+    @property
+    def name(self):
+        return 'Unnamed'
 
     @property
     def stockitem(self):
@@ -328,13 +337,19 @@ class TallyInventoryEntry(TallyElement):
 
 
 class TallyStockItemPosition(TallyElement):
+    attrs = {
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
+    }
+    descendent_elements = {
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
+    }
     elements = {
-        'name': ('name', str, True),
-        '_parent': ('parent', str, True),
-        '_baseunits': ('baseunits', str, True),
-        'closingbalance': ('closingbalance', str, True),
-        'closingvalue': ('closingvalue', str, True),
-        'closingrate': ('closingrate', str, True),
+        '_parent': ('parent', TXString(), True),
+        '_baseunits': ('baseunits', TXString(), True),
+        'closingbalance': ('closingbalance', TXString(), True),
+        'closingvalue': ('closingvalue', TXDecimal(), True),
+        'closingrate': ('closingrate', TXString(), True),
     }
 
     @property
@@ -353,6 +368,9 @@ class TallyStockItemPosition(TallyElement):
                 return self.company_masters.units[self._baseunits]
             except KeyError:
                 return None
+
+    def __repr__(self):
+        return "<TallyStockItemPosition {0}, {1}>".format(self.name, self.closingbalance)
 
 
 class TallyStockPosition(TallyReport):

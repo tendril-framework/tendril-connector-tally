@@ -21,9 +21,12 @@
 from lxml import etree
 from six import iteritems
 
-from .utils import yesorno
-from .utils import parse_date
-from .utils import parse_datetime
+from .utils.converters import TXBoolean
+from .utils.converters import TXString
+from .utils.converters import TXInteger
+from .utils.converters import TXDate
+from .utils.converters import TXDateTime
+from .utils.converters import TXMultilineString
 
 from . import TallyElement
 from . import TallyReport
@@ -35,31 +38,35 @@ import stock
 
 class TallyVoucherType(TallyElement):
     # NOTE Might not be the same in all masters as in the earlier inventory masters
+    attrs = {
+        'name': ('name', TXString(required=True), True),
+        'reservedname': ('reservedname', TXString(), False),
+    }
     descendent_elements = {
-        'name': ('name', str, True),
+        'extendedname': ('name.list', TXMultilineString(required=True), True),
     }
     elements = {
-        '_parent': ('parent', str, True),
-        'mailingname': ('mailingname', str, True),
-        'numberingmethod': ('numberingmethod', str, True),
-        'isdeemedpositive': ('isdeemedpositive', yesorno, False),
-        'affectsstock': ('affectsstock', yesorno, False),
-        'preventduplicates': ('preventduplicates', yesorno, False),
-        'prefillzero': ('prefillzero', yesorno, False),
-        'printaftersave': ('printaftersave', yesorno, False),
-        'formalreceipt': ('formalreceipt', yesorno, False),
-        'isoptional': ('isoptional', yesorno, False),
-        'asmfgjrnl': ('asmfgjrnl', yesorno, False),
-        'effectivedate': ('effectivedate', yesorno, False),
-        'commonnarration': ('commonnarration', yesorno, False),
-        'multinarration': ('multinarration', yesorno, False),
-        'istaxinvoice': ('istaxinvoice', yesorno, False),
-        'useforposinvoice': ('useforposinvoice', yesorno, False),
-        'useforexcisetraderinvoice': ('useforexcisetraderinvoice', yesorno, False),  # noqa
-        'useforexcise': ('useforexcise', yesorno, False),
-        'useforjobwork': ('useforjobwork', yesorno, False),
-        'isforjobworkin': ('isforjobworkin', yesorno, False),
-        'allowconsumption': ('allowconsumption', yesorno, False),
+        '_parent': ('parent', TXString(), True),
+        'mailingname': ('mailingname', TXString(), True),
+        'numberingmethod': ('numberingmethod', TXString(), True),
+        'isdeemedpositive': ('isdeemedpositive', TXBoolean(), False),
+        'affectsstock': ('affectsstock', TXBoolean(), False),
+        'preventduplicates': ('preventduplicates', TXBoolean(), False),
+        'prefillzero': ('prefillzero', TXBoolean(), False),
+        'printaftersave': ('printaftersave', TXBoolean(), False),
+        'formalreceipt': ('formalreceipt', TXBoolean(), False),
+        'isoptional': ('isoptional', TXBoolean(), False),
+        'asmfgjrnl': ('asmfgjrnl', TXBoolean(), False),
+        'effectivedate': ('effectivedate', TXBoolean(), False),
+        'commonnarration': ('commonnarration', TXBoolean(), False),
+        'multinarration': ('multinarration', TXBoolean(), False),
+        'istaxinvoice': ('istaxinvoice', TXBoolean(), False),
+        'useforposinvoice': ('useforposinvoice', TXBoolean(), False),
+        'useforexcisetraderinvoice': ('useforexcisetraderinvoice', TXBoolean(), False),  # noqa
+        'useforexcise': ('useforexcise', TXBoolean(), False),
+        'useforjobwork': ('useforjobwork', TXBoolean(), False),
+        'isforjobworkin': ('isforjobworkin', TXBoolean(), False),
+        'allowconsumption': ('allowconsumption', TXBoolean(), False),
     }
 
     @property
@@ -73,8 +80,8 @@ class TallyVoucherType(TallyElement):
 
 class TallyInvoiceOrder(TallyElement):
     elements = {
-        'basicorderdate': ('basicorderdate', parse_date, True),
-        'basicpurchaseorderno': ('basicpurchaseorderno', str, True),
+        'basicorderdate': ('basicorderdate', TXDate(), True),
+        'basicpurchaseorderno': ('basicpurchaseorderno', TXString(), True),
     }
 
     def __repr__(self):
@@ -85,123 +92,120 @@ class TallyInvoiceOrder(TallyElement):
 
 class TallyVoucher(TallyElement):
     attrs = {
-        '_vchtype': ('vchtype', str, True),
-        'name': ('remoteid', str, True),
+        '_vchtype': ('vchtype', TXString(), True),
+        'name': ('remoteid', TXString(), True),
     }
 
     elements = {
-        'activeto': ('activeto', str, False),
-        'alteredon': ('alteredon', str, False),
-        'date': ('date', parse_date, True),
-        'taxchallandate': ('taxchallandate', str, False),
-        'reconcilationdate': ('reconcilationdate', str, False),
-        'taxchequedate': ('taxchequedate', str, False),
-        'form16issuedate': ('form16issuedate', str, False),
-        'cstformissuedate': ('cstformissuedate', str, False),
-        'cstformrecvdate': ('cstformrecvdate', str, False),
-        'fbtfromdate': ('fbtfromdate', str, False),
-        'fbttodate': ('fbttodate', str, False),
-        'auditedon': ('auditedon', str, False),
-        'guid': ('guid', str, True),
-        'pricelevel': ('pricelevel', str, False),
-        'autocostlevel': ('autocostlevel', str, False),
-        'narration': ('narration', str, True),
-        'alteredby': ('alteredby', str, False),
-        'natureofsales': ('natureofsales', str, False),
-        'excisenotificationno': ('excisenotificationno', str, False),
-        'exciseunitname': ('exciseunitname', str, False),
-        'classname': ('classname', str, False),
-        'poscardledger': ('poscardledger', str, False),
-        'poscashledger': ('poscashledger', str, False),
-        'posgiftledger': ('posgiftledger', str, False),
-        'poschequeledger': ('poschequeledger', str, False),
-        'taxbankchallannumber': ('taxbankchallannumber', str, False),
-        'taxchallanbsrcode': ('taxchallanbsrcode', str, False),
-        'taxchequenumber': ('taxchequenumber', str, False),
-        'taxbankname': ('taxchequenumber', str, False),
-        'vouchertypename': ('vouchertypename', str, False),
-        'vouchernumber': ('vouchernumber', str, False),
-        'reference': ('reference', str, False),
-        'partyledgername': ('partyledgername', str, True),
-        'partyname': ('partyname', str, True),
-        'basicpartyname': ('basicpartyname', str, True),
-        'basicvoucherchequename': ('basicvoucherchequename', str, False),
-        'basicvouchercrosscomment': ('basicvouchercrosscomment', str, False),
-        'exchcurrencyname': ('exchcurrencyname', str, False),
-        'serialmaster': ('serialmaster', str, False),
-        'serialnumber': ('serialnumber', str, False),
-        'statadjustmenttype': ('statadjustmenttype', str, False),
-        'taxbankbranchname': ('taxbankbranchname', str, False),
-        'cstformissuetype': ('cstformissuetype', str, False),
-        'cstformissuenumber': ('cstformissuenumber', str, False),
-        'cstformrecvtype': ('cstformrecvtype', str, False),
-        'cstformrecvnnumber': ('cstformrecvnnumber', str, False),
-        'excisetreasurynumber': ('excisetreasurynumber', str, False),
-        'excisetreasuryname': ('excisetreasuryname', str, False),
-        'fbtpaymenttype': ('fbtpaymenttype', str, False),
-        'poscardnumber': ('poscardnumber', str, False),
-        'poschequenumber': ('poschequenumber', str, False),
-        'poschequebankname': ('poschequebankname', str, False),
-        'taxadjustment': ('taxadjustment', str, False),
-        'challantype': ('challantype', str, False),
-        'chequedepositorname': ('chequedepositorname', str, False),
-        'basicshippedby': ('basicshippedby', str, False),
-        'basicdestinationcountry': ('basicdestinationcountry', str, False),
-        'basicbuyername': ('basicbuyername', str, False),
-        'basicplaceofreceipt': ('basicplaceofreceipt', str, False),
-        'basicshipdocumentno': ('basicshipdocumentno', str, False),
-        'basicportofloading': ('basicportofloading', str, False),
-        'basicportofdischarge': ('basicportofdischarge', str, False),
-        'basicfinaldestination': ('basicfinaldestination', str, False),
-        'basicorderref': ('basicorderref', str, False),
-        'basicshipvesselno': ('basicshipvesselno', str, False),
-        'basicbuyerssalestaxno': ('basicbuyerssalestaxno', str, False),
-        'basicduedateofpymt': ('basicduedateofpymt', str, False),
-        'basicserialnuminpla': ('basicserialnuminpla', str, False),
-        'basicdatetimeofinvoice': ('basicdatetimeofinvoice', parse_datetime, True),
-        'basicdatetimeofremoval': ('basicdatetimeofinvoice', parse_datetime, True),
-        'vchgstclass': ('vchgstclass', str, False),
-        'costcentrename': ('costcentrename', str, False),
-        'enteredby': ('enteredby', str, False),
-        'requestorrule': ('requestorrule', str, False),
-        'destinationgodown': ('destinationgodown', str, False),
-        'diffactualqty': ('diffactualqty', yesorno, True),
-        'audited': ('audited', yesorno, True),
-        'forjobcosting': ('forjobcosting', yesorno, True),
-        'isoptional': ('isoptional', yesorno, True),
-        'effectivedate': ('effectivedate', parse_date, True),
-        'useforinterest': ('useforinterest', yesorno, True),
-        'useforgainloss': ('useforgainloss', yesorno, True),
-        'useforgodowntransfer': ('useforgodowntransfer', yesorno, True),
-        'useforcompound': ('useforcompound', yesorno, True),
-        'alterid': ('alterid', int, True),
-        'exciseopening': ('exciseopening', yesorno, True),
-        'useforfinalproduction': ('useforfinalproduction', yesorno, True),
-        'iscancelled': ('iscancelled', yesorno, True),
-        'hascashflow': ('hascashflow', yesorno, True),
-        'ispostdated': ('ispostdated', yesorno, True),
-        'usetrackingnumber': ('usetrackingnumber', yesorno, True),
-        'isinvoice': ('isinvoice', yesorno, True),
-        'mfgjournal': ('mfgjournal', yesorno, True),
-        'hasdiscounts': ('hasdiscounts', yesorno, True),
-        'aspayslip': ('aspayslip', yesorno, True),
-        'iscostcentre': ('iscostcentre', yesorno, True),
-        'isdeleted': ('isdeleted', yesorno, True),
-        'asoriginal': ('asoriginal', yesorno, True),
-        'poscashreceived': ('poscashreceived', str, False),
-        'exchgrate': ('exchgrate', str, False),
+        'activeto': ('activeto', TXString(), False),
+        'alteredon': ('alteredon', TXString(), False),
+        'date': ('date', TXDate(), True),
+        'taxchallandate': ('taxchallandate', TXString(), False),
+        'reconcilationdate': ('reconcilationdate', TXString(), False),
+        'taxchequedate': ('taxchequedate', TXString(), False),
+        'form16issuedate': ('form16issuedate', TXString(), False),
+        'cstformissuedate': ('cstformissuedate', TXString(), False),
+        'cstformrecvdate': ('cstformrecvdate', TXString(), False),
+        'fbtfromdate': ('fbtfromdate', TXString(), False),
+        'fbttodate': ('fbttodate', TXString(), False),
+        'auditedon': ('auditedon', TXString(), False),
+        'guid': ('guid', TXString(), True),
+        'pricelevel': ('pricelevel', TXString(), False),
+        'autocostlevel': ('autocostlevel', TXString(), False),
+        'narration': ('narration', TXString(), True),
+        'alteredby': ('alteredby', TXString(), False),
+        'natureofsales': ('natureofsales', TXString(), False),
+        'excisenotificationno': ('excisenotificationno', TXString(), False),
+        'exciseunitname': ('exciseunitname', TXString(), False),
+        'classname': ('classname', TXString(), False),
+        'poscardledger': ('poscardledger', TXString(), False),
+        'poscashledger': ('poscashledger', TXString(), False),
+        'posgiftledger': ('posgiftledger', TXString(), False),
+        'poschequeledger': ('poschequeledger', TXString(), False),
+        'taxbankchallannumber': ('taxbankchallannumber', TXString(), False),
+        'taxchallanbsrcode': ('taxchallanbsrcode', TXString(), False),
+        'taxchequenumber': ('taxchequenumber', TXString(), False),
+        'taxbankname': ('taxchequenumber', TXString(), False),
+        'vouchertypename': ('vouchertypename', TXString(), False),
+        'vouchernumber': ('vouchernumber', TXString(), False),
+        'reference': ('reference', TXString(), False),
+        'partyledgername': ('partyledgername', TXString(), True),
+        'partyname': ('partyname', TXString(), True),
+        'basicpartyname': ('basicpartyname', TXString(), False),
+        'basicvoucherchequename': ('basicvoucherchequename', TXString(), False),
+        'basicvouchercrosscomment': ('basicvouchercrosscomment', TXString(), False),
+        'exchcurrencyname': ('exchcurrencyname', TXString(), False),
+        'serialmaster': ('serialmaster', TXString(), False),
+        'serialnumber': ('serialnumber', TXString(), False),
+        'statadjustmenttype': ('statadjustmenttype', TXString(), False),
+        'taxbankbranchname': ('taxbankbranchname', TXString(), False),
+        'cstformissuetype': ('cstformissuetype', TXString(), False),
+        'cstformissuenumber': ('cstformissuenumber', TXString(), False),
+        'cstformrecvtype': ('cstformrecvtype', TXString(), False),
+        'cstformrecvnnumber': ('cstformrecvnnumber', TXString(), False),
+        'excisetreasurynumber': ('excisetreasurynumber', TXString(), False),
+        'excisetreasuryname': ('excisetreasuryname', TXString(), False),
+        'fbtpaymenttype': ('fbtpaymenttype', TXString(), False),
+        'poscardnumber': ('poscardnumber', TXString(), False),
+        'poschequenumber': ('poschequenumber', TXString(), False),
+        'poschequebankname': ('poschequebankname', TXString(), False),
+        'taxadjustment': ('taxadjustment', TXString(), False),
+        'challantype': ('challantype', TXString(), False),
+        'chequedepositorname': ('chequedepositorname', TXString(), False),
+        'basicshippedby': ('basicshippedby', TXString(), False),
+        'basicdestinationcountry': ('basicdestinationcountry', TXString(), False),
+        'basicbuyername': ('basicbuyername', TXString(), False),
+        'basicplaceofreceipt': ('basicplaceofreceipt', TXString(), False),
+        'basicshipdocumentno': ('basicshipdocumentno', TXString(), False),
+        'basicportofloading': ('basicportofloading', TXString(), False),
+        'basicportofdischarge': ('basicportofdischarge', TXString(), False),
+        'basicfinaldestination': ('basicfinaldestination', TXString(), False),
+        'basicorderref': ('basicorderref', TXString(), False),
+        'basicshipvesselno': ('basicshipvesselno', TXString(), False),
+        'basicbuyerssalestaxno': ('basicbuyerssalestaxno', TXString(), False),
+        'basicduedateofpymt': ('basicduedateofpymt', TXString(), False),
+        'basicserialnuminpla': ('basicserialnuminpla', TXString(), False),
+        'basicdatetimeofinvoice': ('basicdatetimeofinvoice', TXDateTime(), True),
+        'basicdatetimeofremoval': ('basicdatetimeofinvoice', TXDateTime(), True),
+        'vchgstclass': ('vchgstclass', TXString(), False),
+        'costcentrename': ('costcentrename', TXString(), False),
+        'enteredby': ('enteredby', TXString(), False),
+        'requestorrule': ('requestorrule', TXString(), False),
+        'destinationgodown': ('destinationgodown', TXString(), False),
+        'diffactualqty': ('diffactualqty', TXBoolean(), True),
+        'audited': ('audited', TXBoolean(), True),
+        'forjobcosting': ('forjobcosting', TXBoolean(), True),
+        'isoptional': ('isoptional', TXBoolean(), True),
+        'effectivedate': ('effectivedate', TXDate(), True),
+        'useforinterest': ('useforinterest', TXBoolean(), True),
+        'useforgainloss': ('useforgainloss', TXBoolean(), True),
+        'useforgodowntransfer': ('useforgodowntransfer', TXBoolean(), True),
+        'useforcompound': ('useforcompound', TXBoolean(), True),
+        'alterid': ('alterid', TXInteger(), True),
+        'exciseopening': ('exciseopening', TXBoolean(), True),
+        'useforfinalproduction': ('useforfinalproduction', TXBoolean(), True),
+        'iscancelled': ('iscancelled', TXBoolean(), True),
+        'hascashflow': ('hascashflow', TXBoolean(), True),
+        'ispostdated': ('ispostdated', TXBoolean(), True),
+        'usetrackingnumber': ('usetrackingnumber', TXBoolean(), True),
+        'isinvoice': ('isinvoice', TXBoolean(), True),
+        'mfgjournal': ('mfgjournal', TXBoolean(), True),
+        'hasdiscounts': ('hasdiscounts', TXBoolean(), True),
+        'aspayslip': ('aspayslip', TXBoolean(), True),
+        'iscostcentre': ('iscostcentre', TXBoolean(), True),
+        'isdeleted': ('isdeleted', TXBoolean(), True),
+        'asoriginal': ('asoriginal', TXBoolean(), True),
+        'poscashreceived': ('poscashreceived', TXString(), False),
+        'exchgrate': ('exchgrate', TXString(), False),
+        'address': ('address.list', TXMultilineString(), False),
+        'basicbuyeraddress': ('basicbuyeraddress.list', TXMultilineString(), False),
+        'basicorderterms': ('basicorderterms.list', TXMultilineString(), False),
     }
 
     lists = {
         'invoiceorderlist': ('invoiceorderlist', TallyInvoiceOrder, True),
         'ledgerentries': ('ledgerentries', ledgers.TallyLedgerEntry, True),
         'inventoryentries': ('allinventoryentries', stock.TallyInventoryEntry, True),
-    }
-
-    multilines = {
-        'address': ('address', str, False),
-        'basicbuyeraddress': ('basicbuyeraddress', str, False),
-        'basicorderterms': ('basicorderterms', str, False),
     }
 
     @property
@@ -245,4 +249,22 @@ def get_list(*args, **kwargs):
 def get_list_sales(*args, **kwargs):
     filters = kwargs.pop('filters', {})
     filters['VoucherTypeName'] = 'Sales'
+    return TallyVouchersList(*args, filters=filters, **kwargs)
+
+
+def get_list_proforma_invoice(*args, **kwargs):
+    filters = kwargs.pop('filters', {})
+    filters['VoucherTypeName'] = 'Performa Invoice'
+    return TallyVouchersList(*args, filters=filters, **kwargs)
+
+
+def get_list_stock_journal(*args, **kwargs):
+    filters = kwargs.pop('filters', {})
+    filters['VoucherTypeName'] = 'Stock Journal'
+    return TallyVouchersList(*args, filters=filters, **kwargs)
+
+
+def get_list_manufacturing_journal(*args, **kwargs):
+    filters = kwargs.pop('filters', {})
+    filters['VoucherTypeName'] = 'Manufacturing Journal'
     return TallyVouchersList(*args, filters=filters, **kwargs)

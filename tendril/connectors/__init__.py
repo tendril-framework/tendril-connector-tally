@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (C) 2016 Chintalagiri Shashank
+# Copyright (C) 2017 Chintalagiri Shashank
 #
 # This file is part of tendril-connector-tally.
 #

@@ -400,12 +400,12 @@ class TallyStockPosition(TallyReport):
     }
 
 
-def get_position(company_name, force=False):
+def get_position(company_name, dt=None, end_dt=None, force=False):
     global _positions
-    if not force and company_name in _positions.keys():
+    if not force and company_name in _positions.keys() and not dt:
         return _positions[company_name]
     try:
-        _positions[company_name] = TallyStockPosition(company_name)
+        _positions[company_name] = TallyStockPosition(company_name, dt=dt, end_dt=end_dt)
     except TallyNotAvailable:
         _positions[company_name] = None
     return _positions[company_name]

@@ -179,9 +179,11 @@ class TallyReport(object):
     _cachename = None
     _content = {}
 
-    def __init__(self, company_name):
+    def __init__(self, company_name, dt=None, end_dt=None):
         self._xion = None
         self._soup = None
+        self._dt = dt
+        self._end_dt = end_dt
         self._company_name = company_name
 
     @property
@@ -205,6 +207,8 @@ class TallyReport(object):
             f.text = item
 
     def _set_request_date(self, svnode, dt=None, end_dt=None):
+        if dt is None and self._dt:
+            dt = self._dt
         (start, end), current = get_date_range(dt, end_dt)
         svfd = etree.SubElement(svnode, 'SVFROMDATE', TYPE='Date')
         svfd.text = start.strftime("%d-%m-%Y")

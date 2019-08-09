@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright (C) 2016 Chintalagiri Shashank
+# Copyright (C) 2015 Chintalagiri Shashank
 #
-# This file is part of tendril-connector-tally.
+# This file is part of tendril.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -18,5 +18,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
+"""
+See http://stackoverflow.com/questions/32757765/conditional-\
+commands-in-tox-tox-travis-ci-and-coveralls/33012308
+"""
+
+
+import os
+
+from subprocess import call
+
+
+if __name__ == '__main__':
+    if 'TRAVIS' in os.environ:
+        rc = call('coveralls')
+        raise SystemExit(rc)

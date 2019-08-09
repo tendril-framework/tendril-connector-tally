@@ -24,11 +24,11 @@ from lxml import etree
 from . import TallyReport
 from . import TallyNotAvailable
 
-import units
-import stock
-import ledgers
-import vouchers
-import currencies
+from . import units
+from . import stock
+from . import ledgers
+from . import vouchers
+from . import currencies
 
 
 def get_master(company_name, force=False):

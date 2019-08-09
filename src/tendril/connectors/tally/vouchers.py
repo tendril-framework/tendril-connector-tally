@@ -32,8 +32,8 @@ from . import TallyElement
 from . import TallyReport
 from . import TallyRequestHeader
 
-import ledgers
-import stock
+from . import ledgers
+from . import stock
 
 
 class TallyVoucherType(TallyElement):

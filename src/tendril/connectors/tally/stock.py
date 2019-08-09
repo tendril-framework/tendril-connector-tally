@@ -35,7 +35,7 @@ from . import TallyRequestHeader
 from . import TallyNotAvailable
 from . import TallyElement
 
-import ledgers
+from . import ledgers
 
 
 class TallyStockGroup(TallyElement):

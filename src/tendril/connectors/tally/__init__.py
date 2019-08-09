@@ -19,7 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Docstring for __init__.py
+Tally XML Primitives and API Engine
+-----------------------------------
 """
 
 

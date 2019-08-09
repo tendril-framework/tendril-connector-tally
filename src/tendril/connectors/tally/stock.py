@@ -19,7 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Docstring for stock
+Tally Stock Masters and Positions
+---------------------------------
 """
 
 from lxml import etree

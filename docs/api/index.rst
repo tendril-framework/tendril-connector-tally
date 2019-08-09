@@ -7,12 +7,12 @@ Tally Data Access APIs
 
 .. toctree::
 
-    tendril.connectors.tally.currencies
-    tendril.connectors.tally.ledgers
     tendril.connectors.tally.masters
+    tendril.connectors.tally.ledgers
+    tendril.connectors.tally.vouchers
     tendril.connectors.tally.stock
     tendril.connectors.tally.units
-    tendril.connectors.tally.vouchers
+    tendril.connectors.tally.currencies
 
 Tally Connector Infrastructure and Helpers
 ------------------------------------------

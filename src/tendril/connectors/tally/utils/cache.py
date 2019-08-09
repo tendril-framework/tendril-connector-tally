@@ -19,7 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Docstring for cache
+Resources for Tally XML Caching
+-------------------------------
 """
 
 from fs.rpcfs import RPCFS

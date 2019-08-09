@@ -19,6 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""
+All Tally Masters
+-----------------
+"""
+
+
 from lxml import etree
 
 from . import TallyReport

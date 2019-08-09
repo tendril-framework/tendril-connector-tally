@@ -1,5 +1,5 @@
 
-.. automodule:: tendril.connector.tally.utils.dates
+.. automodule:: tendril.connectors.tally.utils.dates
     :members:
     :undoc-members:
     :show-inheritance:

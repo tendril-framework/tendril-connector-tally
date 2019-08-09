@@ -1,5 +1,5 @@
 
-.. automodule:: tendril.connector.tally.ledgers
+.. automodule:: tendril.connectors.tally.ledgers
     :members:
     :undoc-members:
     :show-inheritance:

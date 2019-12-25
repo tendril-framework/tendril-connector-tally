@@ -25,7 +25,7 @@ Tally XML Primitives and API Engine
 
 
 from copy import copy
-from six import StringIO
+from six import BytesIO
 from six import iteritems
 from six import string_types
 from inspect import isclass
@@ -102,7 +102,8 @@ class TallyElement(TallyObject):
 
     @property
     def company_masters(self):
-        import masters
+        # TODO Provide 2.x compatible import
+        from . import masters
         return masters.get_master(self.company_name)
 
     def _convert_from_tally(self, spec, candidates):
@@ -301,7 +302,7 @@ class TallyXMLEngine(object):
         self.query = query
         headers = {'Content-Type': 'application/xml'}
         uri = 'http://{0}:{1}'.format(TALLY_HOST, TALLY_PORT)
-        xmlstring = StringIO()
+        xmlstring = BytesIO()
         self.query.write(xmlstring)
         try:
             print("Sending Tally request to {0}".format(uri))
@@ -339,6 +340,6 @@ class TallyXMLEngine(object):
         return self._response
 
     def print_query(self):
-        s = StringIO()
+        s = BytesIO()
         self.query.write(s)
         print(s.getvalue())
